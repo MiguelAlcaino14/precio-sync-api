@@ -47,11 +47,9 @@ async function construirMapaSku(skuSet) {
     if (!Array.isArray(products) || products.length === 0) break;
 
     for (const p of products) {
-      for (const v of (p.variants || [])) {
-        if (v.sku && skuSet.has(v.sku)) {
-          mapa[v.sku] = { productId: p.id, variantId: v.id };
-          skuSet.delete(v.sku);
-        }
+      if (p.sku && skuSet.has(p.sku)) {
+        mapa[p.sku] = { productId: p.id };
+        skuSet.delete(p.sku);
       }
     }
 
@@ -83,8 +81,8 @@ async function publicarPrecios(cambios) {
     }
 
     try {
-      await jsPut(`/products/${info.productId}/variants/${info.variantId}.json`, {
-        variant: { price: c.precioVenta },
+      await jsPut(`/products/${info.productId}.json`, {
+        product: { price: c.precioVenta },
       });
       resultados.push({ id: c.id, sku: c.sku, ok: true });
       await sleep(DELAY);
