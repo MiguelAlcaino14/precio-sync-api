@@ -1,7 +1,7 @@
 const prisma = require('../db');
 
 const BASE  = 'https://api.jumpseller.com/v1';
-const DELAY = 250;
+const DELAY = 600; // JumpSeller rate limit: 2 req/seg (60/min)
 
 function authQuery() {
   const login = process.env.JUMPSELLER_LOGIN;
