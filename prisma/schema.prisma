@@ -1,0 +1,107 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Proveedor {
+  id        String   @id @default(cuid())
+  nombre    String
+  slug      String   @unique
+  config    Json
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  productos Producto[]
+  archivos  ArchivoImportado[]
+  reglas    ReglaMarkup[]
+}
+
+model Producto {
+  id          String   @id @default(cuid())
+  sku         String   @unique
+  nombre      String
+  marca       String?
+  categoria   String?
+  proveedorId String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  proveedor    Proveedor         @relation(fields: [proveedorId], references: [id])
+  costos       PrecioCosto[]
+  precioVenta  PrecioVenta?
+  cambios      CambioPendiente[]
+}
+
+model PrecioCosto {
+  id         String   @id @default(cuid())
+  productoId String
+  costo      Float
+  archivoId  String?
+  createdAt  DateTime @default(now())
+
+  producto Producto          @relation(fields: [productoId], references: [id])
+  archivo  ArchivoImportado? @relation(fields: [archivoId], references: [id])
+}
+
+model PrecioVenta {
+  id         String   @id @default(cuid())
+  productoId String   @unique
+  precio     Float
+  markupPct  Float?
+  updatedAt  DateTime @updatedAt
+
+  producto Producto @relation(fields: [productoId], references: [id])
+}
+
+model CambioPendiente {
+  id             String    @id @default(cuid())
+  productoId     String
+  costoAnterior  Float?
+  costoNuevo     Float
+  precioActual   Float?
+  precioSugerido Float?
+  estado         String    @default("pendiente")
+  archivoId      String?
+  aprobadoAt     DateTime?
+  createdAt      DateTime  @default(now())
+
+  producto Producto          @relation(fields: [productoId], references: [id])
+  archivo  ArchivoImportado? @relation(fields: [archivoId], references: [id])
+}
+
+model ArchivoImportado {
+  id             String   @id @default(cuid())
+  proveedorId    String
+  nombre         String
+  tipo           String
+  estado         String   @default("procesando")
+  totalProductos Int?
+  matcheados     Int?
+  sinMatch       Int?
+  errores        String?
+  createdAt      DateTime @default(now())
+
+  proveedor Proveedor         @relation(fields: [proveedorId], references: [id])
+  costos    PrecioCosto[]
+  cambios   CambioPendiente[]
+}
+
+model ReglaMarkup {
+  id          String   @id @default(cuid())
+  nombre      String
+  proveedorId String?
+  categoria   String?
+  costoMin    Float?
+  costoMax    Float?
+  markupPct   Float
+  prioridad   Int      @default(0)
+  activa      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  proveedor Proveedor? @relation(fields: [proveedorId], references: [id])
+}

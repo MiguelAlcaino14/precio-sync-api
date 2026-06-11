@@ -1,0 +1,39 @@
+services:
+
+  db:
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: precio_sync
+      POSTGRES_USER: precio_sync
+      POSTGRES_PASSWORD: precio_sync_dev
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U precio_sync"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: .
+    ports:
+      - "3001:3001"
+    environment:
+      DATABASE_URL: postgresql://precio_sync:precio_sync_dev@db:5432/precio_sync
+      PORT: 3001
+      NODE_ENV: development
+      JUMPSELLER_LOGIN: ${JUMPSELLER_LOGIN}
+      JUMPSELLER_TOKEN: ${JUMPSELLER_TOKEN}
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - .:/app
+      - /app/node_modules
+    restart: unless-stopped
+
+volumes:
+  pgdata:
