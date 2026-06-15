@@ -61,6 +61,26 @@ async function main() {
     },
   });
 
+  // Proveedor: Proarte
+  const proarte = await prisma.proveedor.upsert({
+    where: { slug: 'proarte' },
+    update: {},
+    create: {
+      nombre: 'Proarte',
+      slug: 'proarte',
+      config: {
+        tipo: 'xlsx',
+        hoja: 'GENERAL 2024 - 2025',
+        colSku: 'Código',
+        colPrecio: 'Precio',
+        colNombre: 'Descripción',
+        colBarras: 'Código de Barra',
+        precioIncluyeIVA: false,
+        factorIVA: 1.19,
+      },
+    },
+  });
+
   // Regla de markup por defecto (aplica a todo)
   await prisma.reglaMarkup.upsert({
     where: { id: 'default' },
@@ -74,7 +94,7 @@ async function main() {
     },
   });
 
-  console.log('Seed completado:', { castilla: castilla.id, torre: torre.id, hinzquin: hinzquin.id });
+  console.log('Seed completado:', { castilla: castilla.id, torre: torre.id, hinzquin: hinzquin.id, proarte: proarte.id });
 }
 
 main()

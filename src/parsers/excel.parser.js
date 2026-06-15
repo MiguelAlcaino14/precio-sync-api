@@ -6,7 +6,10 @@ const XLSX = require('xlsx');
  */
 function parsearExcel(buffer, config) {
   const wb = XLSX.read(buffer, { type: 'buffer' });
-  const hojaIndex = typeof config.hoja === 'number' ? config.hoja : 0;
+  const hojaIndex = typeof config.hoja === 'string'
+    ? wb.SheetNames.indexOf(config.hoja)
+    : (config.hoja ?? 0);
+  if (hojaIndex === -1) throw new Error(`No se encontró la hoja "${config.hoja}" en el Excel`);
   const ws = wb.Sheets[wb.SheetNames[hojaIndex]];
   const filas = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
 
