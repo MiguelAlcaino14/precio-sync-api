@@ -2,46 +2,37 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 async function main() {
-  // Proveedor: Castilla y Aragón
+  // Proveedor: Castilla y Aragón — archivo: LP CONSOLIDADA CASTILLA&ARAGÓN NOV_25.xlsx
+  const castillaConfig = {
+    tipo: 'xlsx',
+    hoja: 0,
+    colSku: 'CÓDIGO',
+    colPrecio: 'P. FINAL UN. NETO',
+    colNombre: 'DESCRIPCION PRODUCTO',
+    colMarca: 'MARCA',
+    colBarras: 'EAN',
+    precioIncluyeIVA: false,
+  };
   const castilla = await prisma.proveedor.upsert({
     where: { slug: 'castilla-aragon' },
-    update: {},
-    create: {
-      nombre: 'Castilla y Aragón',
-      slug: 'castilla-aragon',
-      config: {
-        tipo: 'xlsx',
-        hoja: 0,
-        colSku: 'CODIGO',
-        colPrecio: 'FINAL NETO',
-        colNombre: 'Texto breve material',
-        colMarca: 'Marca',
-        colBarras: 'BARRAS',
-        precioIncluyeIVA: false,
-        separadorMiles: '.',
-      },
-    },
+    update: { config: castillaConfig },
+    create: { nombre: 'Castilla y Aragón', slug: 'castilla-aragon', config: castillaConfig },
   });
 
-  // Proveedor: Torre y Colón
+  // Proveedor: Torre y Colón — archivo: PRECIOS ACTUALIZADOS TORRE Y COLON BTS26M.xlsx
+  const torreConfig = {
+    tipo: 'xlsx',
+    hoja: 0,
+    colSku: 'Cod.',
+    colPrecio: 'PRECIO MAYORISTA',
+    colNombre: 'Descripción Material',
+    colMarca: 'Sector',
+    precioIncluyeIVA: false,
+  };
   const torre = await prisma.proveedor.upsert({
     where: { slug: 'torre-colon' },
-    update: {},
-    create: {
-      nombre: 'Torre y Colón',
-      slug: 'torre-colon',
-      config: {
-        tipo: 'xlsx',
-        hoja: 0,
-        colSku: 'Cod.',
-        colPrecio: 'PRECIO MAYORISTA',
-        colNombre: 'Descripción Material',
-        colMarca: 'Sector',
-        precioIncluyeIVA: false,
-        separadorMiles: '.',
-        simboloPeso: true,
-      },
-    },
+    update: { config: torreConfig },
+    create: { nombre: 'Torre y Colón', slug: 'torre-colon', config: torreConfig },
   });
 
   // Proveedor: Hinzquin

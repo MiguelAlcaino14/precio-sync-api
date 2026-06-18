@@ -13,21 +13,27 @@ function parsearExcel(buffer, config) {
   const ws = wb.Sheets[wb.SheetNames[hojaIndex]];
   const filas = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
 
-  // Encontrar fila de header automáticamente
+  // Normaliza: quita chars no-letra/dígito al inicio (ej: ´PRECIO → PRECIO), trim, lowercase
+  const norm = s => String(s).replace(/^[^\p{L}\d]+/u, '').trim().toLowerCase();
+
+  // Encontrar fila de header automáticamente (case-insensitive)
   let idxHeader = -1;
   for (let i = 0; i < Math.min(filas.length, 15); i++) {
-    if (filas[i].includes(config.colSku)) { idxHeader = i; break; }
+    if (filas[i].some(c => norm(c) === norm(config.colSku))) { idxHeader = i; break; }
   }
-  if (idxHeader === -1) throw new Error(`No se encontró columna "${config.colSku}" en el Excel`);
+  if (idxHeader === -1) {
+    const primeras = filas.slice(0, 5).map(f => f.filter(Boolean).join(' | ')).join('\n');
+    throw new Error(`No se encontró columna "${config.colSku}". Primeras filas:\n${primeras}`);
+  }
 
   const headers = filas[idxHeader];
-  const iSku    = headers.indexOf(config.colSku);
-  const iPrecio = headers.indexOf(config.colPrecio);
-  const iNombre = headers.indexOf(config.colNombre);
-  const iMarca  = config.colMarca  ? headers.indexOf(config.colMarca)  : -1;
-  const iBarras = config.colBarras ? headers.indexOf(config.colBarras) : -1;
+  const iSku    = headers.findIndex(h => norm(h) === norm(config.colSku));
+  const iPrecio = headers.findIndex(h => norm(h) === norm(config.colPrecio));
+  const iNombre = headers.findIndex(h => norm(h) === norm(config.colNombre));
+  const iMarca  = config.colMarca  ? headers.findIndex(h => norm(h) === norm(config.colMarca))  : -1;
+  const iBarras = config.colBarras ? headers.findIndex(h => norm(h) === norm(config.colBarras)) : -1;
 
-  if (iPrecio === -1) throw new Error(`No se encontró columna "${config.colPrecio}" en el Excel`);
+  if (iPrecio === -1) throw new Error(`No se encontró columna "${config.colPrecio}". Headers encontrados: ${headers.filter(Boolean).join(', ')}`);
 
   const productos = [];
   for (let i = idxHeader + 1; i < filas.length; i++) {

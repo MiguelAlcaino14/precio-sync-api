@@ -1,0 +1,33 @@
+services:
+  - type: web
+    name: precio-sync-api
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: precio-sync-db
+          property: connectionString
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        sync: false
+      - key: PANEL_USER
+        sync: false
+      - key: PANEL_PASSWORD
+        sync: false
+      - key: PANEL_ORIGIN
+        sync: false
+      - key: N8N_API_KEY
+        sync: false
+      - key: JUMPSELLER_LOGIN
+        sync: false
+      - key: JUMPSELLER_TOKEN
+        sync: false
+
+databases:
+  - name: precio-sync-db
+    plan: free
+    databaseName: precio_sync
+    user: precio_sync
