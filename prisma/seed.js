@@ -1,7 +1,27 @@
 const { PrismaClient } = require('@prisma/client');
+const bcrypt = require('bcryptjs');
 const prisma = new PrismaClient();
 
 async function main() {
+  // Usuario admin inicial desde variables de entorno
+  const adminUser = process.env.PANEL_USER;
+  const adminPass = process.env.PANEL_PASSWORD;
+  if (adminUser && adminPass) {
+    const hash = await bcrypt.hash(adminPass, 10);
+    await prisma.usuario.upsert({
+      where:  { usuario: adminUser },
+      update: {},
+      create: {
+        nombre:   'Administrador',
+        email:    `${adminUser}@precio-sync.local`,
+        usuario:  adminUser,
+        password: hash,
+        rol:      'admin',
+      },
+    });
+    console.log('Admin seed:', adminUser);
+  }
+
   // Proveedor: Castilla y Aragón — archivo: LP CONSOLIDADA CASTILLA&ARAGÓN NOV_25.xlsx
   const castillaConfig = {
     tipo: 'xlsx',

@@ -18,4 +18,12 @@ function authMiddleware(req, res, next) {
   }
 }
 
+function requireAdmin(req, res, next) {
+  if (req.user?.rol !== 'admin') {
+    return res.status(403).json({ error: 'Se requiere rol administrador' });
+  }
+  next();
+}
+
 module.exports = authMiddleware;
+module.exports.requireAdmin = requireAdmin;
