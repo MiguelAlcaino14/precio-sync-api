@@ -2,9 +2,10 @@ const express = require('express');
 const router  = express.Router();
 const prisma  = require('../db');
 const { publicarPrecios } = require('../services/jumpseller.service');
+const { requireAdmin } = require('../middleware/auth');
 
 // POST /api/publicar  — publica cambios aprobados en JumpSeller
-router.post('/', async (req, res) => {
+router.post('/', requireAdmin, async (req, res) => {
   const { ids } = req.body;
   if (!Array.isArray(ids) || !ids.length) {
     return res.status(400).json({ error: 'ids requerido' });

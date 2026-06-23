@@ -1,6 +1,7 @@
 const express = require('express');
 const prisma  = require('../db');
 const { marcarPublicados } = require('../services/jumpseller.service');
+const { requireAdmin } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -23,12 +24,13 @@ router.get('/', async (req, res) => {
 
     res.json(cambios);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('GET /cambios error:', err);
+    res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
 
 // POST /api/cambios/aprobar  body: { ids: [...], preciosVenta: { id: precio } }
-router.post('/aprobar', async (req, res) => {
+router.post('/aprobar', requireAdmin, async (req, res) => {
   try {
     const { ids, preciosVenta = {} } = req.body;
     if (!ids?.length) return res.status(400).json({ error: 'ids requerido' });
@@ -58,12 +60,13 @@ router.post('/aprobar', async (req, res) => {
 
     res.json({ aprobados: cambios.length });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('POST /cambios/aprobar error:', err);
+    res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
 
 // POST /api/cambios/rechazar  body: { ids: [...] }
-router.post('/rechazar', async (req, res) => {
+router.post('/rechazar', requireAdmin, async (req, res) => {
   try {
     const { ids } = req.body;
     if (!ids?.length) return res.status(400).json({ error: 'ids requerido' });
@@ -75,7 +78,8 @@ router.post('/rechazar', async (req, res) => {
 
     res.json({ rechazados: ids.length });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('POST /cambios/rechazar error:', err);
+    res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
 
@@ -88,7 +92,8 @@ router.get('/resumen', async (req, res) => {
     });
     res.json(resumen);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('GET /cambios/resumen error:', err);
+    res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
 

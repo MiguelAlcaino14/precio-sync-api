@@ -3,6 +3,7 @@ const multer   = require('multer');
 const prisma   = require('../db');
 const { parsearArchivo, detectarTipo } = require('../parsers');
 const { calcularPrecioVenta }          = require('../services/markup.service');
+const { requireAdmin } = require('../middleware/auth');
 
 const router  = express.Router();
 const upload  = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
@@ -19,7 +20,8 @@ router.get('/', async (req, res) => {
     });
     res.json(proveedores);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('GET /proveedores error:', err);
+    res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
 
@@ -33,12 +35,13 @@ router.get('/:id', async (req, res) => {
     if (!proveedor) return res.status(404).json({ error: 'Proveedor no encontrado' });
     res.json(proveedor);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('GET /proveedores/:id error:', err);
+    res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
 
 // POST /api/proveedores/:id/importar  (recibe archivo)
-router.post('/:id/importar', upload.single('archivo'), async (req, res) => {
+router.post('/:id/importar', requireAdmin, upload.single('archivo'), async (req, res) => {
   const { id } = req.params;
 
   if (!req.file) return res.status(400).json({ error: 'No se recibió archivo' });
@@ -67,7 +70,8 @@ router.post('/:id/importar', upload.single('archivo'), async (req, res) => {
     procesarArchivo(archivo.id, proveedor, req.file.buffer, tipo).catch(console.error);
 
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('POST /proveedores/:id/importar error:', err);
+    res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
 

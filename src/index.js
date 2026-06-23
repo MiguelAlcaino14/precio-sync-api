@@ -1,6 +1,17 @@
 require('dotenv').config();
-const express = require('express');
-const cors    = require('cors');
+const express   = require('express');
+const cors      = require('cors');
+const helmet    = require('helmet');
+const rateLimit = require('express-rate-limit');
+const morgan    = require('morgan');
+
+const requiredEnvs = ['JWT_SECRET', 'DATABASE_URL', 'PANEL_ORIGIN'];
+for (const key of requiredEnvs) {
+  if (!process.env[key]) {
+    console.error(`ERROR: ${key} must be set`);
+    process.exit(1);
+  }
+}
 
 const authMiddleware    = require('./middleware/auth');
 const authRouter        = require('./routes/auth');
@@ -11,18 +22,30 @@ const exportarRouter    = require('./routes/exportar');
 const publicarRouter    = require('./routes/publicar');
 const usuariosRouter    = require('./routes/usuarios');
 
-const app  = express();
-const PORT = process.env.PORT || 3001;
+const app        = express();
+const PORT       = process.env.PORT || 3001;
+const isProd     = process.env.NODE_ENV === 'production';
+
+app.use(helmet());
+app.use(morgan(isProd ? 'combined' : 'dev'));
 
 app.use(cors({
-  origin: process.env.PANEL_ORIGIN || 'http://localhost:5173',
+  origin: process.env.PANEL_ORIGIN,
   credentials: true,
 }));
 app.use(express.json());
 
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Demasiados intentos, espera 15 minutos' },
+});
+
 // Rutas públicas
 app.get('/api/health', (req, res) => res.json({ ok: true }));
-app.use('/api/auth', authRouter);
+app.use('/api/auth', authLimiter, authRouter);
 
 // Todas las rutas siguientes requieren auth
 app.use(authMiddleware);

@@ -1,6 +1,7 @@
 const express = require('express');
 const { generarCSVImport, marcarPublicados } = require('../services/jumpseller.service');
 const prisma = require('../db');
+const { requireAdmin } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -17,12 +18,13 @@ router.get('/', async (req, res) => {
     res.setHeader('Content-Disposition', `attachment; filename="${nombre}"`);
     res.send(csv);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('GET /exportar error:', err);
+    res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
 
 // POST /api/exportar/confirmar  — marca los aprobados como publicados
-router.post('/confirmar', async (req, res) => {
+router.post('/confirmar', requireAdmin, async (req, res) => {
   try {
     const { proveedorId } = req.body;
 
@@ -37,7 +39,8 @@ router.post('/confirmar', async (req, res) => {
 
     res.json({ publicados: cambios.length });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('POST /exportar/confirmar error:', err);
+    res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
 
@@ -51,7 +54,8 @@ router.get('/historial', async (req, res) => {
     });
     res.json(historial);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('GET /exportar/historial error:', err);
+    res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
 
