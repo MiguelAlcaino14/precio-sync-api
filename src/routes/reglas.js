@@ -22,11 +22,11 @@ router.get('/', async (req, res) => {
 // POST /api/reglas
 router.post('/', requireAdmin, async (req, res) => {
   try {
-    const { nombre, proveedorId, categoria, costoMin, costoMax, markupPct, prioridad } = req.body;
+    const { nombre, proveedorId, marca, categoria, costoMin, costoMax, markupPct, prioridad } = req.body;
     if (!nombre || markupPct == null) return res.status(400).json({ error: 'nombre y markupPct son requeridos' });
 
     const regla = await prisma.reglaMarkup.create({
-      data: { nombre, proveedorId, categoria, costoMin, costoMax, markupPct, prioridad: prioridad ?? 0 },
+      data: { nombre, proveedorId, marca: marca || null, categoria, costoMin, costoMax, markupPct, prioridad: prioridad ?? 0 },
     });
 
     // Recalcular cambios pendientes afectados

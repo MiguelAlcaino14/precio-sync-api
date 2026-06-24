@@ -8,13 +8,16 @@ datasource db {
 }
 
 model Proveedor {
-  id        String   @id @default(cuid())
-  nombre    String
-  slug      String   @unique
-  config    Json
-  activo    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String   @id @default(cuid())
+  nombre         String
+  slug           String   @unique
+  config         Json
+  activo         Boolean  @default(true)
+  tema           String?
+  descuento      Float    @default(0)
+  driveFolderId  String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   productos Producto[]
   archivos  ArchivoImportado[]
@@ -22,14 +25,16 @@ model Proveedor {
 }
 
 model Producto {
-  id          String   @id @default(cuid())
-  sku         String   @unique
-  nombre      String
-  marca       String?
-  categoria   String?
-  proveedorId String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id              String   @id @default(cuid())
+  sku             String   @unique
+  nombre          String
+  marca           String?
+  categoria       String?
+  unidadesCaja    Int?
+  unidadesPallet  Int?
+  proveedorId     String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   proveedor    Proveedor         @relation(fields: [proveedorId], references: [id])
   costos       PrecioCosto[]
@@ -80,6 +85,7 @@ model ArchivoImportado {
   nombre         String
   tipo           String
   estado         String   @default("procesando")
+  driveFileId    String?
   totalProductos Int?
   matcheados     Int?
   sinMatch       Int?
@@ -92,18 +98,34 @@ model ArchivoImportado {
 }
 
 model ReglaMarkup {
-  id          String   @id @default(cuid())
-  nombre      String
-  proveedorId String?
-  categoria   String?
-  costoMin    Float?
-  costoMax    Float?
-  markupPct   Float
-  prioridad   Int      @default(0)
-  activa      Boolean  @default(true)
-  createdAt   DateTime @default(now())
+  id             String   @id @default(cuid())
+  nombre         String
+  proveedorId    String?
+  marca          String?
+  categoria      String?
+  nombreContiene String?
+  costoMin       Float?
+  costoMax       Float?
+  markupPct      Float
+  prioridad      Int      @default(0)
+  activa         Boolean  @default(true)
+  createdAt      DateTime @default(now())
 
   proveedor Proveedor? @relation(fields: [proveedorId], references: [id])
+}
+
+// Proveedores sin SKU propio (ENGATEL, SCAI, etc.) usan este mapeo
+// para relacionar su nombre de producto con el SKU de JumpSeller.
+// El matching inicial se hace vía Claude AI y se persiste para evitar repetirlo.
+model NombreMapeo {
+  id                  String   @id @default(cuid())
+  proveedorSlug       String
+  nombreProveedor     String
+  sku                 String
+  jumpsellerProductId Int?
+  createdAt           DateTime @default(now())
+
+  @@unique([proveedorSlug, nombreProveedor])
 }
 
 enum Rol {
