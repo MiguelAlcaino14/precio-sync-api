@@ -31,8 +31,8 @@ router.post('/', requireAdmin, async (req, res) => {
     if (!nombre || !email || !usuario || !password) {
       return res.status(400).json({ error: 'Nombre, email, usuario y contraseña son requeridos' });
     }
-    if (password.length < 6) {
-      return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres' });
+    if (password.length < 10) {
+      return res.status(400).json({ error: 'La contraseña debe tener al menos 10 caracteres' });
     }
 
     const hash = await bcrypt.hash(password, 10);
@@ -84,8 +84,8 @@ router.patch('/:id', requireAdmin, async (req, res) => {
 router.patch('/:id/password', requireAdmin, async (req, res) => {
   try {
     const { password } = req.body;
-    if (!password || password.length < 6) {
-      return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres' });
+    if (!password || password.length < 10) {
+      return res.status(400).json({ error: 'La contraseña debe tener al menos 10 caracteres' });
     }
     const hash = await bcrypt.hash(password, 10);
     await prisma.usuario.update({
