@@ -42,10 +42,21 @@ router.post('/', requireAdmin, async (req, res) => {
 // PUT /api/reglas/:id
 router.put('/:id', requireAdmin, async (req, res) => {
   try {
-    const regla = await prisma.reglaMarkup.update({
-      where: { id: req.params.id },
-      data: req.body,
-    });
+    const { nombre, proveedorId, marca, categoria, costoMin, costoMax,
+            markupPct, prioridad, activa, nombreContiene } = req.body;
+    const data = {};
+    if (nombre        !== undefined) data.nombre        = String(nombre).trim().slice(0, 100);
+    if (markupPct     !== undefined) data.markupPct     = Number(markupPct);
+    if (prioridad     !== undefined) data.prioridad     = Number(prioridad);
+    if (activa        !== undefined) data.activa        = Boolean(activa);
+    if (costoMin      !== undefined) data.costoMin      = costoMin  != null ? Number(costoMin)  : null;
+    if (costoMax      !== undefined) data.costoMax      = costoMax  != null ? Number(costoMax)  : null;
+    if (marca         !== undefined) data.marca         = marca     || null;
+    if (categoria     !== undefined) data.categoria     = categoria || null;
+    if (proveedorId   !== undefined) data.proveedorId   = proveedorId || null;
+    if (nombreContiene !== undefined) data.nombreContiene = nombreContiene || null;
+
+    const regla = await prisma.reglaMarkup.update({ where: { id: req.params.id }, data });
     res.json(regla);
   } catch (err) {
     console.error('PUT /reglas error:', err);

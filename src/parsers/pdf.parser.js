@@ -4,7 +4,11 @@ async function parsearPDF(buffer, config) {
   const data  = await pdfParse(buffer);
   const lineas = data.text.split('\n').map(l => l.trim()).filter(Boolean);
 
-  const regexSku = new RegExp(config.patronCodigo || '^\\d{6,7}');
+  const patronRaw = config.patronCodigo || '^\\d{6,7}';
+  if (!/^[\w^$.|+?*{}()[\]\\]{1,80}$/.test(patronRaw)) {
+    throw new Error('patronCodigo inválido en config del proveedor');
+  }
+  const regexSku = new RegExp(patronRaw);
 
   // Unidades conocidas — se usan para detectar dónde termina el nombre
   const unidades = (config.unidades || ['C/u.', 'Pqte.', 'Resma', 'Unid.', 'Rollo', 'Caja', 'Metro'])

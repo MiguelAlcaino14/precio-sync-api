@@ -32,6 +32,7 @@ function authQuery() {
  */
 async function extraerProductosDocx(buffer) {
   const { value: texto } = await mammoth.extractRawText({ buffer });
+  if (texto.length > 500_000) throw new Error('Documento SCAI excede el tamaño máximo permitido');
 
   const lineas = texto
     .split('\n')

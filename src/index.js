@@ -5,7 +5,7 @@ const helmet    = require('helmet');
 const rateLimit = require('express-rate-limit');
 const morgan    = require('morgan');
 
-const requiredEnvs = ['JWT_SECRET', 'DATABASE_URL', 'PANEL_ORIGIN'];
+const requiredEnvs = ['JWT_SECRET', 'DATABASE_URL', 'PANEL_ORIGIN', 'N8N_API_KEY'];
 for (const key of requiredEnvs) {
   if (!process.env[key]) {
     console.error(`ERROR: ${key} must be set`);

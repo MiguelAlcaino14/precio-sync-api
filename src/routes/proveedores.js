@@ -6,7 +6,29 @@ const { calcularPrecioVenta }          = require('../services/markup.service');
 const { requireAdmin } = require('../middleware/auth');
 
 const router  = express.Router();
-const upload  = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
+
+const MIME_PERMITIDOS = new Set([
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.ms-excel',
+  'application/vnd.ms-excel.sheet.macroenabled.12',
+  'text/csv',
+  'application/pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/msword',
+]);
+const EXT_PERMITIDAS = new Set(['xlsx', 'xls', 'xlsm', 'csv', 'pdf', 'docx', 'doc']);
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 20 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const ext = file.originalname.split('.').pop().toLowerCase();
+    if (!EXT_PERMITIDAS.has(ext) || !MIME_PERMITIDOS.has(file.mimetype)) {
+      return cb(new Error('Tipo de archivo no permitido'));
+    }
+    cb(null, true);
+  },
+});
 
 // GET /api/proveedores
 // ?todos=1 → devuelve activos e inactivos (solo admin)

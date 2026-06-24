@@ -41,8 +41,10 @@ router.post('/aprobar', requireAdmin, async (req, res) => {
     });
 
     for (const cambio of cambios) {
-      const precio = preciosVenta[cambio.id] ?? cambio.precioSugerido;
-      if (!precio) continue;
+      const precioRaw = preciosVenta[cambio.id] ?? cambio.precioSugerido;
+      if (!precioRaw) continue;
+      const precio = Number(precioRaw);
+      if (isNaN(precio) || precio <= 0 || precio > 99_999_999) continue;
 
       // Guardar precio de venta
       await prisma.precioVenta.upsert({
