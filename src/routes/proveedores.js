@@ -299,7 +299,7 @@ router.post('/:id/importar', requireAdmin, importLimiter, upload.single('archivo
 
 async function procesarArchivo(archivoId, proveedor, buffer, tipo, nombreArchivo) {
   try {
-    const productos = await parsearArchivo(buffer, tipo, proveedor.config, proveedor.slug);
+    const { productos, sugerencia } = await parsearArchivo(buffer, tipo, proveedor.config, proveedor.slug);
 
     // Aplicar descuento negociado con el proveedor al costo bruto
     const factorDescuento = 1 - (proveedor.descuento ?? 0) / 100;
@@ -371,14 +371,17 @@ async function procesarArchivo(archivoId, proveedor, buffer, tipo, nombreArchivo
       }
     }
 
+    const updateData = {
+      estado:         'procesado',
+      totalProductos: productos.length,
+      matcheados,
+      sinMatch,
+    };
+    if (sugerencia) updateData.sugerenciaConfig = sugerencia;
+
     await prisma.archivoImportado.update({
       where: { id: archivoId },
-      data: {
-        estado:         'procesado',
-        totalProductos: productos.length,
-        matcheados,
-        sinMatch,
-      },
+      data:  updateData,
     });
 
     if (cambiosCreados > 0) {
@@ -399,5 +402,30 @@ async function procesarArchivo(archivoId, proveedor, buffer, tipo, nombreArchivo
     });
   }
 }
+
+// GET /api/proveedores/:id/archivos/:archivoId — estado de una importación
+router.get('/:id/archivos/:archivoId', async (req, res) => {
+  try {
+    const proveedor = await prisma.proveedor.findFirst({
+      where: { OR: [{ id: req.params.id }, { slug: req.params.id }] },
+    });
+    if (!proveedor) return res.status(404).json({ error: 'Proveedor no encontrado' });
+
+    const archivo = await prisma.archivoImportado.findFirst({
+      where: { id: req.params.archivoId, proveedorId: proveedor.id },
+      select: {
+        id: true, estado: true, totalProductos: true,
+        matcheados: true, sinMatch: true, errores: true,
+        sugerenciaConfig: true,
+      },
+    });
+    if (!archivo) return res.status(404).json({ error: 'Archivo no encontrado' });
+
+    res.json(archivo);
+  } catch (err) {
+    console.error('GET /proveedores/:id/archivos/:archivoId error:', err);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
 
 module.exports = router;

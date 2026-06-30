@@ -1,44 +1,37 @@
-const { parsearExcel }      = require('./excel.parser');
-const { parsearPDF }        = require('./pdf.parser');
-const { parsearConIA }      = require('./ia.parser');
-const { parsearEngatel }    = require('./engatel.parser');
+const { parsearExcel }       = require('./excel.parser');
+const { parsearPDF }         = require('./pdf.parser');
+const { parsearConIA }       = require('./ia.parser');
+const { parsearEngatel }     = require('./engatel.parser');
 const { parsearCarlosGardy } = require('./carlos-gardy.parser');
-const { parsearAccoBrand }  = require('./acco-brand.parser');
-const { parsearScai }       = require('./scai.parser');
+const { parsearAccoBrand }   = require('./acco-brand.parser');
+const { parsearScai }        = require('./scai.parser');
 
 /**
  * Parsea un archivo según la config del proveedor.
- * @param {Buffer} buffer        - contenido del archivo
- * @param {string} tipo          - 'xlsx' | 'csv' | 'pdf' | 'docx'
- * @param {object} config        - config del proveedor (viene de DB)
- * @param {string} [proveedorSlug] - slug del proveedor (requerido para parsers con NombreMapeo)
- * @returns {Array}              - [{ sku, nombre, marca, barras, costo }]
+ * Siempre devuelve { productos, sugerencia }.
+ * sugerencia es null salvo cuando el parser ia detecta columnas estructuradas.
  */
 async function parsearArchivo(buffer, tipo, config, proveedorSlug) {
-  if (config?.tipo === 'engatel')      return await parsearEngatel(buffer);
   if (config?.tipo === 'ia')           return await parsearConIA(buffer, tipo);
-  if (config?.tipo === 'carlos-gardy') return parsearCarlosGardy(buffer);
-  if (config?.tipo === 'acco-brand')   return parsearAccoBrand(buffer);
-  if (config?.tipo === 'scai')         return await parsearScai(buffer, proveedorSlug);
+  if (config?.tipo === 'engatel')      return { productos: await parsearEngatel(buffer),             sugerencia: null };
+  if (config?.tipo === 'carlos-gardy') return { productos: parsearCarlosGardy(buffer),               sugerencia: null };
+  if (config?.tipo === 'acco-brand')   return { productos: parsearAccoBrand(buffer),                 sugerencia: null };
+  if (config?.tipo === 'scai')         return { productos: await parsearScai(buffer, proveedorSlug), sugerencia: null };
 
   switch (tipo.toLowerCase()) {
     case 'xlsx':
     case 'xls':
     case 'csv':
-      return parsearExcel(buffer, config);
+      return { productos: parsearExcel(buffer, config), sugerencia: null };
     case 'pdf':
-      return await parsearPDF(buffer, config);
+      return { productos: await parsearPDF(buffer, config), sugerencia: null };
     default:
       return await parsearConIA(buffer, tipo);
   }
 }
 
-/**
- * Detecta el tipo de archivo por su nombre.
- */
 function detectarTipo(nombreArchivo) {
-  const ext = nombreArchivo.split('.').pop().toLowerCase();
-  return ext;
+  return nombreArchivo.split('.').pop().toLowerCase();
 }
 
 module.exports = { parsearArchivo, detectarTipo };

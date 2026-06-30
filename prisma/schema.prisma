@@ -91,6 +91,7 @@ model ArchivoImportado {
   matcheados        Int?
   sinMatch          Int?
   errores           String?
+  sugerenciaConfig  Json?
   createdAt         DateTime @default(now())
 
   proveedor Proveedor         @relation(fields: [proveedorId], references: [id])
