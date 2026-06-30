@@ -80,17 +80,18 @@ model CambioPendiente {
 }
 
 model ArchivoImportado {
-  id             String   @id @default(cuid())
-  proveedorId    String
-  nombre         String
-  tipo           String
-  estado         String   @default("procesando")
-  driveFileId    String?
-  totalProductos Int?
-  matcheados     Int?
-  sinMatch       Int?
-  errores        String?
-  createdAt      DateTime @default(now())
+  id                String   @id @default(cuid())
+  proveedorId       String
+  nombre            String
+  tipo              String
+  estado            String   @default("procesando")
+  driveFileId       String?
+  driveModifiedTime String?
+  totalProductos    Int?
+  matcheados        Int?
+  sinMatch          Int?
+  errores           String?
+  createdAt         DateTime @default(now())
 
   proveedor Proveedor         @relation(fields: [proveedorId], references: [id])
   costos    PrecioCosto[]
@@ -126,6 +127,16 @@ model NombreMapeo {
   createdAt           DateTime @default(now())
 
   @@unique([proveedorSlug, nombreProveedor])
+}
+
+model Notificacion {
+  id        String   @id @default(cuid())
+  tipo      String
+  titulo    String
+  mensaje   String
+  leida     Boolean  @default(false)
+  datos     Json?
+  createdAt DateTime @default(now())
 }
 
 enum Rol {

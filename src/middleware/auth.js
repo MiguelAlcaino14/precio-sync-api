@@ -3,7 +3,10 @@ const jwt = require('jsonwebtoken');
 function authMiddleware(req, res, next) {
   // n8n usa API key estática — solo para endpoints de importación
   const n8nKey = req.headers['x-n8n-key'];
-  if (n8nKey && n8nKey === process.env.N8N_API_KEY) return next();
+  if (n8nKey && n8nKey === process.env.N8N_API_KEY) {
+    req.user = { id: 'n8n-service', rol: 'admin', esServiceAccount: true };
+    return next();
+  }
 
   const header = req.headers.authorization;
   if (!header?.startsWith('Bearer ')) {

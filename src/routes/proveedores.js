@@ -1,11 +1,38 @@
-const express  = require('express');
-const multer   = require('multer');
-const prisma   = require('../db');
+const express    = require('express');
+const path       = require('path');
+const multer     = require('multer');
+const rateLimit  = require('express-rate-limit');
+const prisma     = require('../db');
 const { parsearArchivo, detectarTipo } = require('../parsers');
 const { calcularPrecioVenta }          = require('../services/markup.service');
 const { requireAdmin } = require('../middleware/auth');
 
 const router  = express.Router();
+
+const importLimiter = rateLimit({
+  windowMs: 60_000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Demasiadas importaciones en poco tiempo, espera 1 minuto' },
+});
+
+// Verifica magic bytes del buffer contra el MIME declarado
+function validarMagicBytes(buffer, mimetype) {
+  if (!buffer || buffer.length < 4) return false;
+  const isZip = buffer[0] === 0x50 && buffer[1] === 0x4B;
+  const isOle = buffer[0] === 0xD0 && buffer[1] === 0xCF;
+  const isPdf = buffer[0] === 0x25 && buffer[1] === 0x50 && buffer[2] === 0x44 && buffer[3] === 0x46;
+
+  if (mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') return isZip;
+  if (mimetype === 'application/vnd.ms-excel.sheet.macroenabled.12')                   return isZip;
+  if (mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') return isZip;
+  if (mimetype === 'application/vnd.ms-excel') return isOle;
+  if (mimetype === 'application/msword')        return isOle;
+  if (mimetype === 'application/pdf')           return isPdf;
+  if (mimetype === 'text/csv')                  return true;
+  return false;
+}
 
 const MIME_PERMITIDOS = new Set([
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -34,7 +61,7 @@ const upload = multer({
 // ?todos=1 → devuelve activos e inactivos (solo admin)
 router.get('/', async (req, res) => {
   try {
-    const mostrarTodos = req.query.todos === '1';
+    const mostrarTodos = req.query.todos === '1' && req.user?.rol === 'admin';
     const where = mostrarTodos ? {} : { activo: true };
 
     const proveedores = await prisma.proveedor.findMany({
@@ -102,6 +129,9 @@ router.post('/', requireAdmin, async (req, res) => {
     if (typeof configObj !== 'object' || Array.isArray(configObj) || configObj === null) {
       return res.status(400).json({ error: 'Config debe ser un objeto JSON válido' });
     }
+    if (JSON.stringify(configObj).length > 10_000) {
+      return res.status(400).json({ error: 'Config demasiado grande (máx 10.000 caracteres)' });
+    }
 
     // Slug único
     const existe = await prisma.proveedor.findUnique({ where: { slug } });
@@ -168,6 +198,9 @@ router.put('/:id', requireAdmin, async (req, res) => {
       if (typeof config !== 'object' || Array.isArray(config) || config === null) {
         return res.status(400).json({ error: 'Config debe ser un objeto JSON válido' });
       }
+      if (JSON.stringify(config).length > 10_000) {
+        return res.status(400).json({ error: 'Config demasiado grande (máx 10.000 caracteres)' });
+      }
       data.config = config;
     }
 
@@ -204,10 +237,20 @@ router.delete('/:id', requireAdmin, async (req, res) => {
 });
 
 // POST /api/proveedores/:id/importar  (recibe archivo)
-router.post('/:id/importar', requireAdmin, upload.single('archivo'), async (req, res) => {
+router.post('/:id/importar', requireAdmin, importLimiter, upload.single('archivo'), async (req, res) => {
   const { id } = req.params;
 
   if (!req.file) return res.status(400).json({ error: 'No se recibió archivo' });
+
+  // Validar magic bytes (contenido real vs MIME declarado por el cliente)
+  if (!validarMagicBytes(req.file.buffer, req.file.mimetype)) {
+    return res.status(400).json({ error: 'Contenido del archivo no coincide con el tipo declarado' });
+  }
+
+  // Sanitizar nombre de archivo antes de persistir
+  const nombreArchivo = path.basename(req.file.originalname)
+    .replace(/[^\w.\-]/g, '_')
+    .slice(0, 255);
 
   try {
     const proveedor = await prisma.proveedor.findFirst({
@@ -215,22 +258,38 @@ router.post('/:id/importar', requireAdmin, upload.single('archivo'), async (req,
     });
     if (!proveedor) return res.status(404).json({ error: 'Proveedor no encontrado' });
 
-    const tipo = detectarTipo(req.file.originalname);
+    const tipo = detectarTipo(nombreArchivo);
+
+    // Extraer metadata de Drive (campos texto del multipart)
+    const driveFileId        = (req.body.driveFileId        || '').trim().slice(0, 200) || null;
+    const driveModifiedTime  = (req.body.driveModifiedTime  || '').trim().slice(0, 50)  || null;
+
+    // Deduplicar: si ya procesamos este archivo con esta fecha de modificación, saltar
+    if (driveFileId && driveModifiedTime) {
+      const yaExiste = await prisma.archivoImportado.findFirst({
+        where: { proveedorId: proveedor.id, driveFileId, driveModifiedTime, estado: 'procesado' },
+      });
+      if (yaExiste) {
+        return res.json({ skipped: true, mensaje: 'Archivo ya procesado', archivoId: yaExiste.id });
+      }
+    }
 
     // Registrar el archivo en DB
     const archivo = await prisma.archivoImportado.create({
       data: {
-        proveedorId: proveedor.id,
-        nombre:  req.file.originalname,
+        proveedorId:      proveedor.id,
+        nombre:           nombreArchivo,
         tipo,
-        estado: 'procesando',
+        estado:           'procesando',
+        driveFileId:      driveFileId     || null,
+        driveModifiedTime: driveModifiedTime || null,
       },
     });
 
     // Parsear en background (no bloqueamos la respuesta)
     res.json({ archivoId: archivo.id, mensaje: 'Procesando archivo...' });
 
-    procesarArchivo(archivo.id, proveedor, req.file.buffer, tipo).catch(console.error);
+    procesarArchivo(archivo.id, proveedor, req.file.buffer, tipo, nombreArchivo).catch(console.error);
 
   } catch (err) {
     console.error('POST /proveedores/:id/importar error:', err);
@@ -238,15 +297,16 @@ router.post('/:id/importar', requireAdmin, upload.single('archivo'), async (req,
   }
 });
 
-async function procesarArchivo(archivoId, proveedor, buffer, tipo) {
+async function procesarArchivo(archivoId, proveedor, buffer, tipo, nombreArchivo) {
   try {
     const productos = await parsearArchivo(buffer, tipo, proveedor.config, proveedor.slug);
 
     // Aplicar descuento negociado con el proveedor al costo bruto
     const factorDescuento = 1 - (proveedor.descuento ?? 0) / 100;
 
-    let matcheados = 0;
-    let sinMatch   = 0;
+    let matcheados    = 0;
+    let sinMatch      = 0;
+    let cambiosCreados = 0;
 
     for (const prod of productos) {
       prod.costo = Math.round(prod.costo * factorDescuento);
@@ -306,6 +366,8 @@ async function procesarArchivo(archivoId, proveedor, buffer, tipo) {
             archivoId,
           },
         });
+
+        cambiosCreados++;
       }
     }
 
@@ -318,6 +380,17 @@ async function procesarArchivo(archivoId, proveedor, buffer, tipo) {
         sinMatch,
       },
     });
+
+    if (cambiosCreados > 0) {
+      await prisma.notificacion.create({
+        data: {
+          tipo:    'cambios_detectados',
+          titulo:  `${proveedor.nombre}: ${cambiosCreados} cambio${cambiosCreados !== 1 ? 's' : ''} detectado${cambiosCreados !== 1 ? 's' : ''}`,
+          mensaje: `Archivo "${nombreArchivo}" procesado. ${cambiosCreados} producto${cambiosCreados !== 1 ? 's' : ''} con cambio de precio.`,
+          datos:   { proveedorId: proveedor.id, proveedorNombre: proveedor.nombre, cambiosCreados },
+        },
+      });
+    }
 
   } catch (err) {
     await prisma.archivoImportado.update({

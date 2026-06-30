@@ -13,14 +13,15 @@ for (const key of requiredEnvs) {
   }
 }
 
-const authMiddleware    = require('./middleware/auth');
-const authRouter        = require('./routes/auth');
-const proveedoresRouter = require('./routes/proveedores');
-const cambiosRouter     = require('./routes/cambios');
-const reglasRouter      = require('./routes/reglas');
-const exportarRouter    = require('./routes/exportar');
-const publicarRouter    = require('./routes/publicar');
-const usuariosRouter    = require('./routes/usuarios');
+const authMiddleware        = require('./middleware/auth');
+const authRouter            = require('./routes/auth');
+const proveedoresRouter     = require('./routes/proveedores');
+const cambiosRouter         = require('./routes/cambios');
+const reglasRouter          = require('./routes/reglas');
+const exportarRouter        = require('./routes/exportar');
+const publicarRouter        = require('./routes/publicar');
+const usuariosRouter        = require('./routes/usuarios');
+const notificacionesRouter  = require('./routes/notificaciones');
 
 const app        = express();
 const PORT       = process.env.PORT || 3001;
@@ -50,12 +51,13 @@ app.use('/api/auth', authLimiter, authRouter);
 // Todas las rutas siguientes requieren auth
 app.use(authMiddleware);
 
-app.use('/api/proveedores', proveedoresRouter);
-app.use('/api/cambios',     cambiosRouter);
-app.use('/api/reglas',      reglasRouter);
-app.use('/api/exportar',    exportarRouter);
-app.use('/api/publicar',    publicarRouter);
-app.use('/api/usuarios',    usuariosRouter);
+app.use('/api/proveedores',    proveedoresRouter);
+app.use('/api/cambios',        cambiosRouter);
+app.use('/api/reglas',         reglasRouter);
+app.use('/api/exportar',       exportarRouter);
+app.use('/api/publicar',       publicarRouter);
+app.use('/api/usuarios',       usuariosRouter);
+app.use('/api/notificaciones', notificacionesRouter);
 
 app.use((err, req, res, next) => {
   console.error(err);
