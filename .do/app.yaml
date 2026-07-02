@@ -17,6 +17,7 @@ services:
       initial_delay_seconds: 60   # da tiempo a prisma db push en el arranque
     routes:
       - path: /api
+        preserve_path_prefix: true
     envs:
       - key: NODE_ENV
         value: production

@@ -106,6 +106,7 @@ const LIBRERIA = [
 const ASEO = [
   { nombre: 'BRILLEX',           slug: 'brillex',         config: { tipo: 'ia' } },
   { nombre: 'CHIPRO',            slug: 'chipro',          config: { tipo: 'ia' } },
+  { nombre: 'DURANDIN',          slug: 'durandin',        config: { tipo: 'ia' } },
   { nombre: 'ELITE',             slug: 'elite',           config: { tipo: 'ia' } },
   { nombre: 'FIBRO',             slug: 'fibro',           config: { tipo: 'ia' } },
   { nombre: 'IMPOEX',            slug: 'impoex',          config: { tipo: 'ia' } },
@@ -122,6 +123,14 @@ const ASEO = [
     config: { tipo: 'ia' },
     activo: false, // solo envía .ppt — no importable hasta que provean Excel/PDF
   },
+];
+
+// ── Proveedores alimentos ─────────────────────────────────────────────────────
+const ALIMENTOS = [
+  { nombre: '4M ALIMENTOS', slug: '4m-alimentos', config: { tipo: 'ia' } },
+  { nombre: 'CAMBIASO',     slug: 'cambiaso',     config: { tipo: 'ia' } },
+  { nombre: 'COLISEO',      slug: 'coliseo',      config: { tipo: 'ia' } },
+  { nombre: 'TRES MONTES',  slug: 'tres-montes',  config: { tipo: 'ia' } },
 ];
 
 async function main() {
@@ -164,6 +173,17 @@ async function main() {
     console.log(`  ${estado} ${result.nombre} (${result.slug})`);
   }
 
+  // ── Proveedores alimentos ────────────────────────────────────────────────────
+  console.log(`\nInsertando ${ALIMENTOS.length} proveedores de alimentos...`);
+  for (const p of ALIMENTOS) {
+    const result = await prisma.proveedor.upsert({
+      where:  { slug: p.slug },
+      update: { nombre: p.nombre, tema: 'alimentos', config: p.config },
+      create: { nombre: p.nombre, slug: p.slug, tema: 'alimentos', descuento: 0, config: p.config, activo: true },
+    });
+    console.log(`  ✓ ${result.nombre} (${result.slug})`);
+  }
+
   // ── Regla de markup por defecto ─────────────────────────────────────────────
   await prisma.reglaMarkup.upsert({
     where:  { id: 'default' },
@@ -177,7 +197,7 @@ async function main() {
     },
   });
 
-  console.log(`\nSeed completado: ${LIBRERIA.length} librería + ${ASEO.length} aseo + 1 regla markup`);
+  console.log(`\nSeed completado: ${LIBRERIA.length} librería + ${ASEO.length} aseo + ${ALIMENTOS.length} alimentos + 1 regla markup`);
 }
 
 main()
