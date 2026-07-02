@@ -125,24 +125,21 @@ const ASEO = [
 ];
 
 async function main() {
-  // ── Usuario admin ───────────────────────────────────────────────────────────
-  const adminUser = process.env.PANEL_USER;
-  const adminPass = process.env.PANEL_PASSWORD;
-  if (adminUser && adminPass) {
-    const hash = await bcrypt.hash(adminPass, 10);
-    await prisma.usuario.upsert({
-      where:  { usuario: adminUser },
-      update: {},
-      create: {
-        nombre:   'Administrador',
-        email:    `${adminUser}@precio-sync.local`,
-        usuario:  adminUser,
-        password: hash,
-        rol:      'admin',
-      },
-    });
-    console.log('Admin seed:', adminUser);
-  }
+  // ── Usuario admin por defecto ────────────────────────────────────────────────
+  // Cambiar la contraseña desde el panel (Usuarios) después del primer login.
+  const hash = await bcrypt.hash('Admin2026!', 10);
+  await prisma.usuario.upsert({
+    where:  { usuario: 'admin' },
+    update: {},
+    create: {
+      nombre:   'Administrador',
+      email:    'admin@chilenamayorista.cl',
+      usuario:  'admin',
+      password: hash,
+      rol:      'admin',
+    },
+  });
+  console.log('Admin seed: admin / Admin2026!');
 
   // ── Proveedores librería ────────────────────────────────────────────────────
   console.log(`\nInsertando ${LIBRERIA.length} proveedores de librería...`);

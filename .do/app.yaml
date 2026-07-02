@@ -35,13 +35,6 @@ services:
         value: REEMPLAZAR_SECRET_LARGO
         scope: RUN_TIME
         type: SECRET
-      - key: PANEL_USER
-        value: admin
-        scope: RUN_TIME
-      - key: PANEL_PASSWORD
-        value: REEMPLAZAR_PASSWORD
-        scope: RUN_TIME
-        type: SECRET
       - key: N8N_API_KEY
         value: REEMPLAZAR_GENERAR_NUEVA_KEY
         scope: RUN_TIME
