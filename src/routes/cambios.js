@@ -85,6 +85,19 @@ router.post('/rechazar', requireAdmin, async (req, res) => {
   }
 });
 
+// POST /api/cambios/limpiar  — elimina todos los cambios pendientes
+router.post('/limpiar', requireAdmin, async (req, res) => {
+  try {
+    const { count } = await prisma.cambioPendiente.deleteMany({
+      where: { estado: 'pendiente' },
+    });
+    res.json({ eliminados: count });
+  } catch (err) {
+    console.error('POST /cambios/limpiar error:', err);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
 // GET /api/cambios/resumen  — cuántos pendientes por proveedor
 router.get('/resumen', async (req, res) => {
   try {

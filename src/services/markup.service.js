@@ -19,6 +19,14 @@ async function calcularPrecioVenta(sku, costo, proveedorId) {
     orderBy: { prioridad: 'desc' },
   });
 
+  // Reglas con SKU específico tienen prioridad implícita sobre las generales
+  reglas.sort((a, b) => {
+    const aHasSku = a.sku ? 1 : 0;
+    const bHasSku = b.sku ? 1 : 0;
+    if (bHasSku !== aHasSku) return bHasSku - aHasSku;
+    return b.prioridad - a.prioridad;
+  });
+
   for (const regla of reglas) {
     if (regla.proveedorId && regla.proveedorId !== proveedorId) continue;
     if (regla.sku       && regla.sku       !== sku)                 continue;
