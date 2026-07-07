@@ -21,6 +21,7 @@ async function calcularPrecioVenta(sku, costo, proveedorId) {
 
   for (const regla of reglas) {
     if (regla.proveedorId && regla.proveedorId !== proveedorId) continue;
+    if (regla.sku       && regla.sku       !== sku)                 continue;
     if (regla.marca     && regla.marca     !== producto?.marca)     continue;
     if (regla.categoria && regla.categoria !== producto?.categoria) continue;
     if (regla.nombreContiene && !producto?.nombre?.toLowerCase().includes(regla.nombreContiene.toLowerCase())) continue;

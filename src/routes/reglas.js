@@ -19,14 +19,36 @@ router.get('/', async (req, res) => {
   }
 });
 
+// GET /api/reglas/skus?q=  — autocomplete de SKU para el formulario
+router.get('/skus', async (req, res) => {
+  try {
+    const q = String(req.query.q || '').trim();
+    if (q.length < 2) return res.json([]);
+    const productos = await prisma.producto.findMany({
+      where: {
+        OR: [
+          { sku:    { contains: q, mode: 'insensitive' } },
+          { nombre: { contains: q, mode: 'insensitive' } },
+        ],
+      },
+      select: { sku: true, nombre: true },
+      take: 10,
+    });
+    res.json(productos);
+  } catch (err) {
+    console.error('GET /reglas/skus error:', err);
+    res.status(500).json({ error: 'Error interno' });
+  }
+});
+
 // POST /api/reglas
 router.post('/', requireAdmin, async (req, res) => {
   try {
-    const { nombre, proveedorId, marca, categoria, costoMin, costoMax, markupPct, prioridad } = req.body;
+    const { nombre, proveedorId, sku, marca, categoria, costoMin, costoMax, markupPct, prioridad } = req.body;
     if (!nombre || markupPct == null) return res.status(400).json({ error: 'nombre y markupPct son requeridos' });
 
     const regla = await prisma.reglaMarkup.create({
-      data: { nombre, proveedorId, marca: marca || null, categoria, costoMin, costoMax, markupPct, prioridad: prioridad ?? 0 },
+      data: { nombre, proveedorId, sku: sku || null, marca: marca || null, categoria, costoMin, costoMax, markupPct, prioridad: prioridad ?? 0 },
     });
 
     // Recalcular cambios pendientes afectados
@@ -42,7 +64,7 @@ router.post('/', requireAdmin, async (req, res) => {
 // PUT /api/reglas/:id
 router.put('/:id', requireAdmin, async (req, res) => {
   try {
-    const { nombre, proveedorId, marca, categoria, costoMin, costoMax,
+    const { nombre, proveedorId, sku, marca, categoria, costoMin, costoMax,
             markupPct, prioridad, activa, nombreContiene } = req.body;
     const data = {};
     if (nombre        !== undefined) data.nombre        = String(nombre).trim().slice(0, 100);
@@ -51,6 +73,7 @@ router.put('/:id', requireAdmin, async (req, res) => {
     if (activa        !== undefined) data.activa        = Boolean(activa);
     if (costoMin      !== undefined) data.costoMin      = costoMin  != null ? Number(costoMin)  : null;
     if (costoMax      !== undefined) data.costoMax      = costoMax  != null ? Number(costoMax)  : null;
+    if (sku           !== undefined) data.sku           = sku       || null;
     if (marca         !== undefined) data.marca         = marca     || null;
     if (categoria     !== undefined) data.categoria     = categoria || null;
     if (proveedorId   !== undefined) data.proveedorId   = proveedorId || null;

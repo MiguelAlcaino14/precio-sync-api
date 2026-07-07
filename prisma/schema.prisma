@@ -103,6 +103,7 @@ model ReglaMarkup {
   id             String   @id @default(cuid())
   nombre         String
   proveedorId    String?
+  sku            String?
   marca          String?
   categoria      String?
   nombreContiene String?
