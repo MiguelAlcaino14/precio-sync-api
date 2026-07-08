@@ -416,11 +416,9 @@ async function procesarArchivo(archivoId, proveedor, buffer, tipo, nombreArchivo
       const precioVentaActual = await prisma.precioVenta.findUnique({ where: { productoId: producto.id } });
       const { precio: precioSugerido } = await calcularPrecioVenta(prod.sku, prod.costo, proveedor.id);
 
-      // Si el costo cambió Y el precio sugerido difiere del actual, crear cambio pendiente
+      // Crear cambio si el precio de venta sugerido difiere del actual (o no existe aún)
       const costoAnteriorValor  = costoAnterior?.costo ?? null;
-      const costoCambio         = costoAnteriorValor === null || Math.abs(prod.costo - costoAnteriorValor) > 1;
-      const precioCambio        = !precioVentaActual || precioSugerido !== precioVentaActual.precio;
-      const cambioSignificativo = costoCambio && precioCambio;
+      const cambioSignificativo = !precioVentaActual || precioSugerido !== precioVentaActual.precio;
 
       if (cambioSignificativo) {
         // Cancelar cambios anteriores pendientes del mismo producto
