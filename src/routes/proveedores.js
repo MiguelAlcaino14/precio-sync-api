@@ -328,6 +328,7 @@ router.post('/:id/importar', requireAdmin, importLimiter, upload.single('archivo
         where: { proveedorId: proveedor.id, driveFileId, driveModifiedTime, estado: 'procesado' },
       });
       if (yaExiste) {
+        console.log(`[importar] SKIPPED driveFileId=${driveFileId} ya existe archivoId=${yaExiste.id}`);
         return res.json({ skipped: true, mensaje: 'Archivo ya procesado', archivoId: yaExiste.id });
       }
     }
@@ -356,8 +357,10 @@ router.post('/:id/importar', requireAdmin, importLimiter, upload.single('archivo
 });
 
 async function procesarArchivo(archivoId, proveedor, buffer, tipo, nombreArchivo) {
+  console.log(`[procesarArchivo] inicio archivoId=${archivoId} proveedor=${proveedor.slug} tipo=${tipo}`);
   try {
     const { productos, sugerencia } = await parsearArchivo(buffer, tipo, proveedor.config, proveedor.slug);
+    console.log(`[procesarArchivo] parser OK productos=${productos.length}`);
 
     // Aplicar descuento negociado con el proveedor al costo bruto
     const factorDescuento = 1 - (proveedor.descuento ?? 0) / 100;
@@ -419,6 +422,7 @@ async function procesarArchivo(archivoId, proveedor, buffer, tipo, nombreArchivo
       // Crear cambio si el precio de venta sugerido difiere del actual (o no existe aún)
       const costoAnteriorValor  = costoAnterior?.costo ?? null;
       const cambioSignificativo = !precioVentaActual || precioSugerido !== precioVentaActual.precio;
+      console.log(`[procesarArchivo] sku=${prod.sku} costo=${prod.costo} precioSugerido=${precioSugerido} precioVentaActual=${precioVentaActual?.precio ?? null} cambio=${cambioSignificativo}`);
 
       if (cambioSignificativo) {
         // Cancelar cambios anteriores pendientes del mismo producto
@@ -467,6 +471,7 @@ async function procesarArchivo(archivoId, proveedor, buffer, tipo, nombreArchivo
     }
 
   } catch (err) {
+    console.error(`[procesarArchivo] ERROR archivoId=${archivoId}:`, err.message);
     await prisma.archivoImportado.update({
       where: { id: archivoId },
       data: { estado: 'error', errores: err.message },
