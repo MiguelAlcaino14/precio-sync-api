@@ -19,7 +19,10 @@ const LIBRERIA = [
   { nombre: 'Demarka',  slug: 'demarka',  config: { tipo: 'ia' } },
   { nombre: 'Devoto',   slug: 'devoto',   config: { tipo: 'ia' } },
   { nombre: 'Libesa',   slug: 'libesa',   config: { tipo: 'ia' } },
-  { nombre: 'Pronobel', slug: 'pronobel', config: { tipo: 'ia' } },
+  {
+    nombre: 'Pronobel', slug: 'pronobel',
+    config: { colSku: 'Material', colNombre: 'Texto breve material', colPrecio: 'CASTILLA Y ARAGON', colMarca: 'Marca', colBarras: 'BARRAS' },
+  },
   { nombre: 'Teknofas', slug: 'teknofas', config: { tipo: 'ia' } },
 
   // Excel genérico
@@ -49,7 +52,7 @@ const LIBRERIA = [
   },
   {
     nombre: 'JM Azcorbebeitia', slug: 'jm-azcorbebeitia',
-    config: { colSku: 'Código', colNombre: 'Descripción', colPrecio: 'COSTO CASTILLA', colBarras: 'Ean' },
+    config: { colSku: 'Código', colNombre: 'Descripción', colPrecio: 'Precio Neto', colBarras: 'Ean', colMarca: 'SuperFamilia' },
   },
   {
     nombre: 'Offione', slug: 'offione',
@@ -108,13 +111,19 @@ const ASEO = [
   { nombre: 'CHIPRO',            slug: 'chipro',          config: { tipo: 'ia' } },
   { nombre: 'DURANDIN',          slug: 'durandin',        config: { tipo: 'ia' } },
   { nombre: 'ELITE',             slug: 'elite',           config: { tipo: 'ia' } },
-  { nombre: 'FIBRO',             slug: 'fibro',           config: { tipo: 'ia' } },
+  {
+    nombre: 'FIBRO', slug: 'fibro',
+    config: { colSku: 'CODIGO', colNombre: 'DESCRIPCIÓN', colPrecio: 'L1', colMarca: 'MARCA', colBarras: 'EAN' },
+  },
   { nombre: 'IMPOEX',            slug: 'impoex',          config: { tipo: 'ia' } },
   { nombre: 'LIBESA (Aseo)',     slug: 'libesa-aseo',     config: { tipo: 'ia' } },
   { nombre: 'LLABRES',           slug: 'llabres',         config: { tipo: 'ia' } },
   { nombre: 'MGP',               slug: 'mgp',             config: { tipo: 'ia' } },
   { nombre: 'NEO',               slug: 'neo',             config: { tipo: 'ia' } },
-  { nombre: 'ROMMEL',            slug: 'rommel',          config: { tipo: 'ia' } },
+  {
+    nombre: 'ROMMEL', slug: 'rommel',
+    config: { colSku: 'N°', colNombre: 'DESCRIPCION', colPrecio: 'VALOR' },
+  },
   { nombre: 'SAFE PRO',          slug: 'safe-pro',        config: { tipo: 'ia' } },
   { nombre: 'SAN REMO',          slug: 'san-remo',        config: { tipo: 'ia' } },
   { nombre: 'VIRUTEX',           slug: 'virutex',         config: { tipo: 'ia' } },
