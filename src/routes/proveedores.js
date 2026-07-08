@@ -267,8 +267,8 @@ router.get('/:id/productos', requireAdmin, async (req, res) => {
         take: limit,
         orderBy: { nombre: 'asc' },
         include: {
-          precioVenta:  true,
-          precioCosto:  { orderBy: { createdAt: 'desc' }, take: 1 },
+          precioVenta: true,
+          costos:      { orderBy: { createdAt: 'desc' }, take: 1 },
         },
       }),
     ]);
@@ -285,7 +285,7 @@ router.get('/:id/productos', requireAdmin, async (req, res) => {
         categoria:     p.categoria,
         unidadesCaja:  p.unidadesCaja,
         precioVenta:   p.precioVenta?.precio ?? null,
-        costoActual:   p.precioCosto[0]?.costo ?? null,
+        costoActual:   p.costos[0]?.costo ?? null,
       })),
     });
   } catch (err) {
