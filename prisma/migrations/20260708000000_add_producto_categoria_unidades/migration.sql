@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "Producto" ADD COLUMN IF NOT EXISTS "categoria" TEXT;
+ALTER TABLE "Producto" ADD COLUMN IF NOT EXISTS "unidadesCaja" INTEGER;
+ALTER TABLE "Producto" ADD COLUMN IF NOT EXISTS "unidadesPallet" INTEGER;
