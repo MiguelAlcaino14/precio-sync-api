@@ -1,10 +1,15 @@
 const XLSX = require('xlsx');
 
-const PATRONES_SKU    = ['codigo', 'cod', 'sku', 'item', 'gp', 'ref', 'referencia', 'material', 'art', 'id'];
-const PATRONES_PRECIO = ['neto', 'precio', 'costo', 'valor', 'cc', 'tarifa', 'p.neto', 'pvp'];
-const PATRONES_NOMBRE = ['descripcion', 'descripcion', 'glosa', 'nombre', 'articulo', 'producto', 'detalle', 'denominacion'];
-const PATRONES_MARCA  = ['marca', 'fabricante', 'familia', 'superfamilia', 'categoria', 'linea', 'rubro'];
-const PATRONES_BARRAS = ['ean', 'barras', 'barra', 'codebar', 'codigo barra', 'cb'];
+const PATRONES_SKU    = ['codigo', 'cod', 'sku', 'item', 'gp', 'ref', 'referencia', 'material', 'art', 'id producto', 'id art'];
+const PATRONES_PRECIO = ['neto', 'precio', 'costo', 'valor', 'cc', 'tarifa', 'p.neto', 'pvp', 'importe'];
+const PATRONES_NOMBRE = [
+  'descripcion', 'glosa', 'nombre', 'articulo', 'producto', 'detalle',
+  'denominacion', 'texto breve material', 'texto breve', 'texto', 'desc',
+  'mercaderia', 'concepto', 'bien', 'etiqueta', 'specification',
+  'item name', 'product name', 'designacion',
+];
+const PATRONES_MARCA  = ['marca', 'fabricante', 'familia', 'superfamilia', 'categoria', 'linea', 'rubro', 'brand'];
+const PATRONES_BARRAS = ['ean', 'barras', 'barra', 'codebar', 'codigo barra', 'cb', 'upc', 'gtln'];
 
 const norm = s => String(s || '').toLowerCase()
   .normalize('NFD').replace(/[̀-ͯ]/g, '')
@@ -13,9 +18,10 @@ const norm = s => String(s || '').toLowerCase()
 function matchScore(header, patrones) {
   const h = norm(header);
   for (const p of patrones) {
-    if (h === p) return 3;
+    if (h === p)                          return 3;
+    if (h.startsWith(p + ' ') || h === p) return 3;
     if (h.startsWith(p) || h.endsWith(p)) return 2;
-    if (h.includes(p)) return 1;
+    if (h.includes(p))                    return 1;
   }
   return 0;
 }
@@ -38,12 +44,11 @@ function detectarIndices(headers) {
   };
 }
 
-function parsearAutodetect(buffer) {
+function parsearAutodetect(buffer, slug) {
   const wb = XLSX.read(buffer, { type: 'buffer' });
   const ws = wb.Sheets[wb.SheetNames[0]];
   const filas = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
 
-  // Encuentra la primera fila candidata a header (>= 3 celdas no vacías)
   let idxHeader = -1;
   let indices = null;
   for (let i = 0; i < Math.min(filas.length, 20); i++) {
@@ -59,12 +64,15 @@ function parsearAutodetect(buffer) {
 
   if (!indices || idxHeader === -1) {
     const encabezados = filas.slice(0, 5).map(f => f.filter(Boolean).join(' | ')).join('\n');
-    throw new Error(`Auto-detección no encontró columnas de SKU y Precio. Primeras filas:\n${encabezados}`);
+    throw new Error(`Auto-detección no encontró columnas SKU y Precio. Primeras filas:\n${encabezados}`);
   }
 
+  const headers = filas[idxHeader];
   const { iSku, iPrecio, iNombre, iMarca, iBarras } = indices;
-  const productos = [];
+  console.log(`[autodetect][${slug}] header fila ${idxHeader}: ${headers.filter(Boolean).join(' | ')}`);
+  console.log(`[autodetect][${slug}] SKU="${headers[iSku]}" PRECIO="${headers[iPrecio]}" NOMBRE="${iNombre >= 0 ? headers[iNombre] : 'NO DETECTADO'}" MARCA="${iMarca >= 0 ? headers[iMarca] : '-'}"`);
 
+  const productos = [];
   for (let i = idxHeader + 1; i < filas.length; i++) {
     const f = filas[i];
     const sku = String(f[iSku] || '').trim();
@@ -78,13 +86,13 @@ function parsearAutodetect(buffer) {
 
     productos.push({
       sku,
-      nombre:        iNombre >= 0 ? String(f[iNombre] || '').trim().slice(0, 500) : '',
-      marca:         iMarca  >= 0 ? String(f[iMarca]  || '').trim().slice(0, 100) || null : null,
-      barras:        iBarras >= 0 ? String(f[iBarras] || '').trim() || null : null,
-      costo:         Math.round(costo),
-      unidadesCaja:  null,
+      nombre:         iNombre >= 0 ? String(f[iNombre] || '').trim().slice(0, 500) : '',
+      marca:          iMarca  >= 0 ? String(f[iMarca]  || '').trim().slice(0, 100) || null : null,
+      barras:         iBarras >= 0 ? String(f[iBarras] || '').trim() || null : null,
+      costo:          Math.round(costo),
+      unidadesCaja:   null,
       unidadesPallet: null,
-      categoria:     'unidad',
+      categoria:      'unidad',
     });
   }
 

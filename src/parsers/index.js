@@ -26,7 +26,7 @@ async function parsearArchivo(buffer, tipo, config, proveedorSlug) {
     // Sin API key: autodetección para Excel, PDF falla
     if (['xlsx', 'xls', 'csv'].includes(tipo.toLowerCase())) {
       console.warn(`[parser] ANTHROPIC_API_KEY no configurada, usando autodetección para ${tipo}`);
-      return { productos: parsearAutodetect(buffer), sugerencia: null };
+      return { productos: parsearAutodetect(buffer, proveedorSlug), sugerencia: null };
     }
     throw new Error('Parser IA requerido para PDF pero ANTHROPIC_API_KEY no está configurada');
   }
@@ -41,7 +41,7 @@ async function parsearArchivo(buffer, tipo, config, proveedorSlug) {
       // Sin columnas configuradas: autodetección
       if (!tieneApiKey()) {
         console.warn(`[parser] Sin colSku/colPrecio y sin ANTHROPIC_API_KEY, usando autodetección`);
-        return { productos: parsearAutodetect(buffer), sugerencia: null };
+        return { productos: parsearAutodetect(buffer, proveedorSlug), sugerencia: null };
       }
       return await parsearConIA(buffer, tipo);
     case 'pdf':
