@@ -30,7 +30,7 @@ router.get('/', async (req, res) => {
 });
 
 // POST /api/cambios/aprobar  body: { ids: [...], preciosVenta: { id: precio } }
-router.post('/aprobar', requireAdmin, async (req, res) => {
+router.post('/aprobar', async (req, res) => {
   try {
     const { ids, preciosVenta = {} } = req.body;
     if (!ids?.length) return res.status(400).json({ error: 'ids requerido' });
@@ -68,7 +68,7 @@ router.post('/aprobar', requireAdmin, async (req, res) => {
 });
 
 // POST /api/cambios/rechazar  body: { ids: [...] }
-router.post('/rechazar', requireAdmin, async (req, res) => {
+router.post('/rechazar', async (req, res) => {
   try {
     const { ids } = req.body;
     if (!ids?.length) return res.status(400).json({ error: 'ids requerido' });
