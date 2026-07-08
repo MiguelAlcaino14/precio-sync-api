@@ -63,8 +63,7 @@ function parsearAutodetect(buffer, slug) {
   }
 
   if (!indices || idxHeader === -1) {
-    const encabezados = filas.slice(0, 5).map(f => f.filter(Boolean).join(' | ')).join('\n');
-    throw new Error(`Auto-detección no encontró columnas SKU y Precio. Primeras filas:\n${encabezados}`);
+    throw new Error('Auto-detección no encontró columnas SKU y Precio en las primeras 20 filas del archivo');
   }
 
   const headers = filas[idxHeader];
@@ -72,8 +71,9 @@ function parsearAutodetect(buffer, slug) {
   console.log(`[autodetect][${slug}] header fila ${idxHeader}: ${headers.filter(Boolean).join(' | ')}`);
   console.log(`[autodetect][${slug}] SKU="${headers[iSku]}" PRECIO="${headers[iPrecio]}" NOMBRE="${iNombre >= 0 ? headers[iNombre] : 'NO DETECTADO'}" MARCA="${iMarca >= 0 ? headers[iMarca] : '-'}"`);
 
+  const MAX_FILAS = 50_000;
   const productos = [];
-  for (let i = idxHeader + 1; i < filas.length; i++) {
+  for (let i = idxHeader + 1; i < Math.min(filas.length, idxHeader + 1 + MAX_FILAS); i++) {
     const f = filas[i];
     const sku = String(f[iSku] || '').trim();
     if (!sku || sku.length > 100) continue;
