@@ -236,6 +236,64 @@ router.delete('/:id', requireAdmin, async (req, res) => {
   }
 });
 
+// GET /api/proveedores/:id/productos?q=&page=1&limit=50
+router.get('/:id/productos', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const q      = String(req.query.q || '').trim().slice(0, 100);
+    const page   = Math.max(1, parseInt(req.query.page)  || 1);
+    const limit  = Math.min(100, Math.max(1, parseInt(req.query.limit) || 50));
+    const skip   = (page - 1) * limit;
+
+    const proveedor = await prisma.proveedor.findFirst({ where: { OR: [{ id }, { slug: id }] } });
+    if (!proveedor) return res.status(404).json({ error: 'Proveedor no encontrado' });
+
+    const where = {
+      proveedorId: proveedor.id,
+      ...(q ? {
+        OR: [
+          { sku:    { contains: q, mode: 'insensitive' } },
+          { nombre: { contains: q, mode: 'insensitive' } },
+          { marca:  { contains: q, mode: 'insensitive' } },
+        ],
+      } : {}),
+    };
+
+    const [total, productos] = await Promise.all([
+      prisma.producto.count({ where }),
+      prisma.producto.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { nombre: 'asc' },
+        include: {
+          precioVenta:  true,
+          precioCosto:  { orderBy: { createdAt: 'desc' }, take: 1 },
+        },
+      }),
+    ]);
+
+    res.json({
+      total,
+      page,
+      limit,
+      productos: productos.map(p => ({
+        id:            p.id,
+        sku:           p.sku,
+        nombre:        p.nombre,
+        marca:         p.marca,
+        categoria:     p.categoria,
+        unidadesCaja:  p.unidadesCaja,
+        precioVenta:   p.precioVenta?.precio ?? null,
+        costoActual:   p.precioCosto[0]?.costo ?? null,
+      })),
+    });
+  } catch (err) {
+    console.error('GET /proveedores/:id/productos error:', err);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
 // POST /api/proveedores/:id/importar  (recibe archivo)
 router.post('/:id/importar', requireAdmin, importLimiter, upload.single('archivo'), async (req, res) => {
   const { id } = req.params;
@@ -316,18 +374,31 @@ async function procesarArchivo(archivoId, proveedor, buffer, tipo, nombreArchivo
       if (!producto) {
         // Producto nuevo en el sistema → sin match en JumpSeller por ahora
         sinMatch++;
+        const CATEGORIAS_VALIDAS = ['unidad', 'caja', 'pallet'];
         producto = await prisma.producto.create({
           data: {
             sku:            prod.sku,
             nombre:         prod.nombre,
             marca:          prod.marca,
+            categoria:      CATEGORIAS_VALIDAS.includes(prod.categoria) ? prod.categoria : null,
             unidadesCaja:   prod.unidadesCaja   ?? null,
             unidadesPallet: prod.unidadesPallet ?? null,
-            proveedorId: proveedor.id,
+            proveedorId:    proveedor.id,
           },
         });
       } else {
         matcheados++;
+        // Actualizar nombre y marca si el parser los trajo y el registro está vacío
+        const updates = {};
+        if (prod.nombre         && !producto.nombre)         updates.nombre         = prod.nombre;
+        if (prod.marca          && !producto.marca)          updates.marca          = prod.marca;
+        const CATEGORIAS_VALIDAS = ['unidad', 'caja', 'pallet'];
+        if (prod.categoria && CATEGORIAS_VALIDAS.includes(prod.categoria) && !producto.categoria) updates.categoria = prod.categoria;
+        if (prod.unidadesCaja   && !producto.unidadesCaja)   updates.unidadesCaja   = prod.unidadesCaja;
+        if (prod.unidadesPallet && !producto.unidadesPallet) updates.unidadesPallet = prod.unidadesPallet;
+        if (Object.keys(updates).length) {
+          producto = await prisma.producto.update({ where: { id: producto.id }, data: updates });
+        }
       }
 
       // Registrar el costo histórico
@@ -345,9 +416,11 @@ async function procesarArchivo(archivoId, proveedor, buffer, tipo, nombreArchivo
       const precioVentaActual = await prisma.precioVenta.findUnique({ where: { productoId: producto.id } });
       const { precio: precioSugerido } = await calcularPrecioVenta(prod.sku, prod.costo, proveedor.id);
 
-      // Si el costo cambió (o es nuevo), crear cambio pendiente
-      const costoAnteriorValor = costoAnterior?.costo ?? null;
-      const cambioSignificativo = costoAnteriorValor === null || Math.abs(prod.costo - costoAnteriorValor) > 1;
+      // Si el costo cambió Y el precio sugerido difiere del actual, crear cambio pendiente
+      const costoAnteriorValor  = costoAnterior?.costo ?? null;
+      const costoCambio         = costoAnteriorValor === null || Math.abs(prod.costo - costoAnteriorValor) > 1;
+      const precioCambio        = !precioVentaActual || precioSugerido !== precioVentaActual.precio;
+      const cambioSignificativo = costoCambio && precioCambio;
 
       if (cambioSignificativo) {
         // Cancelar cambios anteriores pendientes del mismo producto
@@ -404,7 +477,7 @@ async function procesarArchivo(archivoId, proveedor, buffer, tipo, nombreArchivo
 }
 
 // GET /api/proveedores/:id/archivos/:archivoId — estado de una importación
-router.get('/:id/archivos/:archivoId', async (req, res) => {
+router.get('/:id/archivos/:archivoId', requireAdmin, async (req, res) => {
   try {
     const proveedor = await prisma.proveedor.findFirst({
       where: { OR: [{ id: req.params.id }, { slug: req.params.id }] },

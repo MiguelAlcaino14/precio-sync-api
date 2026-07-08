@@ -27,11 +27,13 @@ function parsearExcel(buffer, config) {
   }
 
   const headers = filas[idxHeader];
-  const iSku    = headers.findIndex(h => norm(h) === norm(config.colSku));
-  const iPrecio = headers.findIndex(h => norm(h) === norm(config.colPrecio));
-  const iNombre = headers.findIndex(h => norm(h) === norm(config.colNombre));
-  const iMarca  = config.colMarca  ? headers.findIndex(h => norm(h) === norm(config.colMarca))  : -1;
-  const iBarras = config.colBarras ? headers.findIndex(h => norm(h) === norm(config.colBarras)) : -1;
+  const iSku           = headers.findIndex(h => norm(h) === norm(config.colSku));
+  const iPrecio        = headers.findIndex(h => norm(h) === norm(config.colPrecio));
+  const iNombre        = headers.findIndex(h => norm(h) === norm(config.colNombre));
+  const iMarca         = config.colMarca         ? headers.findIndex(h => norm(h) === norm(config.colMarca))         : -1;
+  const iBarras        = config.colBarras        ? headers.findIndex(h => norm(h) === norm(config.colBarras))        : -1;
+  const iUnidadesCaja  = config.colUnidadesCaja  ? headers.findIndex(h => norm(h) === norm(config.colUnidadesCaja))  : -1;
+  const iUnidadesPallet = config.colUnidadesPallet ? headers.findIndex(h => norm(h) === norm(config.colUnidadesPallet)) : -1;
 
   if (iPrecio === -1) throw new Error(`No se encontró columna "${config.colPrecio}". Headers encontrados: ${headers.filter(Boolean).join(', ')}`);
 
@@ -54,12 +56,19 @@ function parsearExcel(buffer, config) {
       costo = costo * config.factorIVA;
     }
 
+    const parseUnidades = v => { const n = parseInt(v); return n > 1 && n <= 10000 ? n : null; };
+    const unidadesCaja   = iUnidadesCaja  >= 0 ? parseUnidades(f[iUnidadesCaja])  : null;
+    const unidadesPallet = iUnidadesPallet >= 0 ? parseUnidades(f[iUnidadesPallet]) : null;
+
     productos.push({
       sku,
-      nombre:  String(f[iNombre] || '').trim(),
-      marca:   iMarca  >= 0 ? String(f[iMarca]  || '').trim() : null,
-      barras:  iBarras >= 0 ? String(f[iBarras] || '').trim() : null,
-      costo:   Math.round(costo),
+      nombre:        String(f[iNombre] || '').trim(),
+      marca:         iMarca  >= 0 ? String(f[iMarca]  || '').trim() : null,
+      barras:        iBarras >= 0 ? String(f[iBarras] || '').trim() : null,
+      costo:         Math.round(costo),
+      unidadesCaja,
+      unidadesPallet,
+      categoria:     unidadesCaja > 1 ? 'caja' : 'unidad',
     });
   }
 
