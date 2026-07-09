@@ -23,7 +23,10 @@ const LIBRERIA = [
     nombre: 'Pronobel', slug: 'pronobel',
     config: { colSku: 'Material', colNombre: 'Texto breve material', colPrecio: 'CASTILLA Y ARAGON', colMarca: 'Marca', colBarras: 'BARRAS' },
   },
-  { nombre: 'Teknofas', slug: 'teknofas', config: { tipo: 'ia' } },
+  {
+    nombre: 'Teknofas', slug: 'teknofas',
+    config: { colSku: 'CODIGO', colNombre: 'DESCRIPCION', colPrecio: 'Precio unit.' },
+  },
 
   // Excel genérico
   {
@@ -107,7 +110,10 @@ const LIBRERIA = [
 
 // ── Proveedores aseo ──────────────────────────────────────────────────────────
 const ASEO = [
-  { nombre: 'BRILLEX',           slug: 'brillex',         config: { tipo: 'ia' } },
+  {
+    nombre: 'BRILLEX', slug: 'brillex',
+    config: { colSku: 'Codigo Odoo', colNombre: 'DESCRIPCION', colPrecio: 'precio neto unitario' },
+  },
   { nombre: 'CHIPRO',            slug: 'chipro',          config: { tipo: 'ia' } },
   { nombre: 'DURANDIN',          slug: 'durandin',        config: { tipo: 'ia' } },
   { nombre: 'ELITE',             slug: 'elite',           config: { tipo: 'ia' } },
@@ -115,11 +121,23 @@ const ASEO = [
     nombre: 'FIBRO', slug: 'fibro',
     config: { colSku: 'CODIGO', colNombre: 'DESCRIPCIÓN', colPrecio: 'L1', colMarca: 'MARCA', colBarras: 'EAN' },
   },
-  { nombre: 'IMPOEX',            slug: 'impoex',          config: { tipo: 'ia' } },
-  { nombre: 'LIBESA (Aseo)',     slug: 'libesa-aseo',     config: { tipo: 'ia' } },
+  {
+    nombre: 'IMPOEX', slug: 'impoex',
+    config: { colSku: 'N° SAP', colNombre: 'DESCRIPCION', colPrecio: 'COSTO CASTILLA', colMarca: 'MARCA' },
+  },
+  {
+    nombre: 'LIBESA (Aseo)', slug: 'libesa-aseo',
+    config: { colSku: 'Código', colNombre: 'Descripción', colPrecio: 'Precio', hoja: 0 },
+  },
   { nombre: 'LLABRES',           slug: 'llabres',         config: { tipo: 'ia' } },
-  { nombre: 'MGP',               slug: 'mgp',             config: { tipo: 'ia' } },
-  { nombre: 'NEO',               slug: 'neo',             config: { tipo: 'ia' } },
+  {
+    nombre: 'MGP', slug: 'mgp',
+    config: { colSku: 'CÓDIGO', colNombre: 'PRODUCTO', colPrecio: 'PRECIO ACTUAL' },
+  },
+  {
+    nombre: 'NEO', slug: 'neo',
+    config: { colSku: 'COD', colNombre: 'Descripción', colPrecio: 'Valor Neto' },
+  },
   {
     nombre: 'ROMMEL', slug: 'rommel',
     config: { colSku: 'N°', colNombre: 'DESCRIPCION', colPrecio: 'VALOR' },
@@ -139,7 +157,10 @@ const ALIMENTOS = [
   { nombre: '4M ALIMENTOS', slug: '4m-alimentos', config: { tipo: 'ia' } },
   { nombre: 'CAMBIASO',     slug: 'cambiaso',     config: { tipo: 'ia' } },
   { nombre: 'COLISEO',      slug: 'coliseo',      config: { tipo: 'ia' } },
-  { nombre: 'TRES MONTES',  slug: 'tres-montes',  config: { tipo: 'ia' } },
+  {
+    nombre: 'TRES MONTES', slug: 'tres-montes',
+    config: { colSku: 'Cod. Material', colNombre: 'Material', colPrecio: 'Precio x unidad (Fórmula)', colMarca: 'Marca' },
+  },
 ];
 
 async function main() {

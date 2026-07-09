@@ -18,14 +18,24 @@ async function parsearExcelConIA(buffer) {
   const hojaIndex = 0;
   const ws        = wb.Sheets[wb.SheetNames[hojaIndex]];
   const filas     = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
-  const contenido = XLSX.utils.sheet_to_csv(ws);
 
   // Encontrar la primera fila con al menos 3 celdas no vacías (candidata a header)
   let encabezados = [];
+  let idxHeader   = -1;
   for (let i = 0; i < Math.min(filas.length, 15); i++) {
     const celdas = filas[i].map(c => String(c).trim()).filter(Boolean);
-    if (celdas.length >= 3) { encabezados = celdas; break; }
+    if (celdas.length >= 3) { encabezados = celdas; idxHeader = i; break; }
   }
+
+  // Solo filas desde el header, sin filas vacías, máx 2000 filas → tab-separated
+  const sliceStart = idxHeader >= 0 ? idxHeader : 0;
+  const contenido  = filas
+    .slice(sliceStart)
+    .filter(f => f.some(c => String(c).trim() !== ''))
+    .slice(0, 2000)
+    .map(f => f.map(c => String(c).trim()).join('\t'))
+    .join('\n')
+    .slice(0, 50000);
 
   const message = await client.messages.create({
     model: 'claude-haiku-4-5-20251001',
@@ -131,7 +141,10 @@ ${contenido.slice(0, 60000)}
 
 async function parsearPDFConIA(buffer) {
   const data      = await pdfParse(buffer);
-  const contenido = data.text;
+  const contenido = data.text
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 
   const message = await client.messages.create({
     model: 'claude-haiku-4-5-20251001',
@@ -156,7 +169,7 @@ Devuelve ÚNICAMENTE un JSON array, sin texto adicional:
 [{"sku":"código","nombre":"descripción del producto","precio":1234,"marca":"MARCA o null"}]
 
 <DOCUMENTO>
-${contenido.slice(0, 60000)}
+${contenido.slice(0, 50000)}
 </DOCUMENTO>`,
     }],
   });
