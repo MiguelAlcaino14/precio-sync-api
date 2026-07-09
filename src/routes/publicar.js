@@ -37,6 +37,7 @@ router.post('/', async (req, res) => {
     payload.push({
       id:          c.id,
       sku:         c.producto.sku,
+      nombre:      c.producto.nombre,
       precioVenta: precioFinal,
       ...(oferta ? { ofertaAplicada: oferta.nombre, descuentoPct: oferta.descuentoPct } : {}),
     });

@@ -5,6 +5,7 @@ const rateLimit  = require('express-rate-limit');
 const prisma     = require('../db');
 const { parsearArchivo, detectarTipo } = require('../parsers');
 const { calcularPrecioVenta }          = require('../services/markup.service');
+const { construirMapas, normNombre }   = require('../services/jumpseller.service');
 const { requireAdmin } = require('../middleware/auth');
 
 const router  = express.Router();
@@ -365,22 +366,46 @@ async function procesarArchivo(archivoId, proveedor, buffer, tipo, nombreArchivo
     const { productos, sugerencia } = await parsearArchivo(buffer, tipo, proveedor.config, proveedor.slug);
     console.log(`[procesarArchivo] parser OK productos=${productos.length}`);
 
-    // Aplicar descuento negociado con el proveedor al costo bruto
-    const factorDescuento = 1 - (proveedor.descuento ?? 0) / 100;
+    // Obtener mapa JumpSeller para validar que los productos existen antes de procesarlos
+    let mapaJS       = null;
+    let advertenciaJS = null;
+    if (process.env.JUMPSELLER_LOGIN && process.env.JUMPSELLER_TOKEN) {
+      try {
+        mapaJS = await construirMapas();
+        console.log(`[procesarArchivo] mapa JumpSeller OK sku=${Object.keys(mapaJS.mapaSku).length} nombres=${Object.keys(mapaJS.mapaNombre).length}`);
+      } catch (err) {
+        advertenciaJS = `JumpSeller no disponible al importar, se procesaron todos los productos sin validar. (${err.message})`;
+        console.warn(`[procesarArchivo] ${advertenciaJS}`);
+      }
+    }
 
-    let matcheados    = 0;
-    let sinMatch      = 0;
+    const factorDescuento = 1 - (proveedor.descuento ?? 0) / 100;
+    const CATEGORIAS_VALIDAS = ['unidad', 'caja', 'pallet'];
+
+    let matcheados     = 0;
+    let sinMatch       = 0;
     let cambiosCreados = 0;
 
     for (const prod of productos) {
+      // Si el mapa JS está disponible, omitir productos que no existen en JumpSeller
+      if (mapaJS) {
+        const enJS = mapaJS.mapaSku[prod.sku] ||
+                     (prod.nombre && mapaJS.mapaNombre[normNombre(prod.nombre)]);
+        if (!enJS) {
+          sinMatch++;
+          console.log(`[procesarArchivo] omitido sku=${prod.sku} (no existe en JumpSeller)`);
+          continue;
+        }
+        matcheados++;
+      }
+
       prod.costo = Math.round(prod.costo * factorDescuento);
-      // Buscar o crear producto
+
+      // Buscar o crear producto en DB interna
       let producto = await prisma.producto.findUnique({ where: { sku: prod.sku } });
 
       if (!producto) {
-        // Producto nuevo en el sistema → sin match en JumpSeller por ahora
-        sinMatch++;
-        const CATEGORIAS_VALIDAS = ['unidad', 'caja', 'pallet'];
+        if (!mapaJS) sinMatch++;
         producto = await prisma.producto.create({
           data: {
             sku:            prod.sku,
@@ -393,12 +418,10 @@ async function procesarArchivo(archivoId, proveedor, buffer, tipo, nombreArchivo
           },
         });
       } else {
-        matcheados++;
-        // Actualizar nombre y marca si el parser los trajo y el registro está vacío
+        if (!mapaJS) matcheados++;
         const updates = {};
         if (prod.nombre         && !producto.nombre)         updates.nombre         = prod.nombre;
         if (prod.marca          && !producto.marca)          updates.marca          = prod.marca;
-        const CATEGORIAS_VALIDAS = ['unidad', 'caja', 'pallet'];
         if (prod.categoria && CATEGORIAS_VALIDAS.includes(prod.categoria) && !producto.categoria) updates.categoria = prod.categoria;
         if (prod.unidadesCaja   && !producto.unidadesCaja)   updates.unidadesCaja   = prod.unidadesCaja;
         if (prod.unidadesPallet && !producto.unidadesPallet) updates.unidadesPallet = prod.unidadesPallet;
@@ -412,23 +435,19 @@ async function procesarArchivo(archivoId, proveedor, buffer, tipo, nombreArchivo
         data: { productoId: producto.id, costo: prod.costo, archivoId },
       });
 
-      // Obtener costo anterior (último antes de este)
       const costoAnterior = await prisma.precioCosto.findFirst({
         where: { productoId: producto.id, NOT: { archivoId } },
         orderBy: { createdAt: 'desc' },
       });
 
-      // Calcular precio de venta sugerido
       const precioVentaActual = await prisma.precioVenta.findUnique({ where: { productoId: producto.id } });
       const { precio: precioSugerido } = await calcularPrecioVenta(prod.sku, prod.costo, proveedor.id);
 
-      // Crear cambio si el precio de venta sugerido difiere del actual (o no existe aún)
       const costoAnteriorValor  = costoAnterior?.costo ?? null;
       const cambioSignificativo = !precioVentaActual || precioSugerido !== precioVentaActual.precio;
       console.log(`[procesarArchivo] sku=${prod.sku} costo=${prod.costo} precioSugerido=${precioSugerido} precioVentaActual=${precioVentaActual?.precio ?? null} cambio=${cambioSignificativo}`);
 
       if (cambioSignificativo) {
-        // Cancelar cambios anteriores pendientes del mismo producto
         await prisma.cambioPendiente.updateMany({
           where: { productoId: producto.id, estado: 'pendiente' },
           data: { estado: 'reemplazado' },
@@ -455,19 +474,20 @@ async function procesarArchivo(archivoId, proveedor, buffer, tipo, nombreArchivo
       matcheados,
       sinMatch,
     };
-    if (sugerencia) updateData.sugerenciaConfig = sugerencia;
+    if (sugerencia)    updateData.sugerenciaConfig = sugerencia;
+    if (advertenciaJS) updateData.errores = `ADVERTENCIA: ${advertenciaJS}`;
 
-    await prisma.archivoImportado.update({
-      where: { id: archivoId },
-      data:  updateData,
-    });
+    await prisma.archivoImportado.update({ where: { id: archivoId }, data: updateData });
 
-    if (cambiosCreados > 0) {
+    const tituloBase = `${proveedor.nombre}: ${cambiosCreados} cambio${cambiosCreados !== 1 ? 's' : ''} detectado${cambiosCreados !== 1 ? 's' : ''}`;
+    const mensajeBase = `Archivo "${nombreArchivo}" procesado. ${cambiosCreados} producto${cambiosCreados !== 1 ? 's' : ''} con cambio de precio.`;
+
+    if (cambiosCreados > 0 || advertenciaJS) {
       await prisma.notificacion.create({
         data: {
-          tipo:    'cambios_detectados',
-          titulo:  `${proveedor.nombre}: ${cambiosCreados} cambio${cambiosCreados !== 1 ? 's' : ''} detectado${cambiosCreados !== 1 ? 's' : ''}`,
-          mensaje: `Archivo "${nombreArchivo}" procesado. ${cambiosCreados} producto${cambiosCreados !== 1 ? 's' : ''} con cambio de precio.`,
+          tipo:    advertenciaJS ? 'advertencia_jumpseller' : 'cambios_detectados',
+          titulo:  advertenciaJS ? `${tituloBase} (sin validación JumpSeller)` : tituloBase,
+          mensaje: advertenciaJS ? `${mensajeBase} ADVERTENCIA: ${advertenciaJS}` : mensajeBase,
           datos:   { proveedorId: proveedor.id, proveedorNombre: proveedor.nombre, cambiosCreados },
         },
       });

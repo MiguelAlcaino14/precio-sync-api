@@ -5,6 +5,7 @@ const { parsearEngatel }     = require('./engatel.parser');
 const { parsearCarlosGardy } = require('./carlos-gardy.parser');
 const { parsearAccoBrand }   = require('./acco-brand.parser');
 const { parsearScai }        = require('./scai.parser');
+const { parsearCambiaso }    = require('./cambiaso.parser');
 const { parsearAutodetect }  = require('./autodetect.parser');
 
 const tieneApiKey = () => !!process.env.OPENAI_API_KEY;
@@ -20,9 +21,10 @@ async function parsearArchivo(buffer, tipo, config, proveedorSlug) {
   if (config?.tipo === 'carlos-gardy') return { productos: parsearCarlosGardy(buffer),               sugerencia: null };
   if (config?.tipo === 'acco-brand')   return { productos: parsearAccoBrand(buffer),                 sugerencia: null };
   if (config?.tipo === 'scai')         return { productos: await parsearScai(buffer, proveedorSlug), sugerencia: null };
+  if (config?.tipo === 'cambiaso')     return { productos: parsearCambiaso(buffer),                  sugerencia: null };
 
   if (config?.tipo === 'ia') {
-    if (tieneApiKey()) return await parsearConIA(buffer, tipo);
+    if (tieneApiKey()) return await parsearConIA(buffer, tipo, config?.hint ?? null);
     // Sin API key: autodetección para Excel, PDF falla
     if (['xlsx', 'xls', 'csv'].includes(tipo.toLowerCase())) {
       console.warn(`[parser] OPENAI_API_KEY no configurada, usando autodetección para ${tipo}`);
@@ -43,11 +45,11 @@ async function parsearArchivo(buffer, tipo, config, proveedorSlug) {
         console.warn(`[parser] Sin colSku/colPrecio y sin OPENAI_API_KEY, usando autodetección`);
         return { productos: parsearAutodetect(buffer, proveedorSlug), sugerencia: null };
       }
-      return await parsearConIA(buffer, tipo);
+      return await parsearConIA(buffer, tipo, config?.hint ?? null);
     case 'pdf':
       return { productos: await parsearPDF(buffer, config), sugerencia: null };
     default:
-      if (tieneApiKey()) return await parsearConIA(buffer, tipo);
+      if (tieneApiKey()) return await parsearConIA(buffer, tipo, config?.hint ?? null);
       throw new Error(`Tipo "${tipo}" requiere OPENAI_API_KEY para parsear`);
   }
 }

@@ -16,9 +16,15 @@ const LIBRERIA = [
   { nombre: 'TECNIGOM', slug: 'tecnigom', config: { tipo: 'ia' } },
 
   // IA (multi-hoja o estructura variable)
-  { nombre: 'Demarka',  slug: 'demarka',  config: { tipo: 'ia' } },
-  { nombre: 'Devoto',   slug: 'devoto',   config: { tipo: 'ia' } },
-  { nombre: 'Libesa',   slug: 'libesa',   config: { tipo: 'ia' } },
+  {
+    nombre: 'Demarka', slug: 'demarka',
+    config: { colSku: 'CODIGO ADETEC', colNombre: 'DESCRIPCION', colPrecio: 'PRECIO LISTA' },
+  },
+  { nombre: 'Devoto', slug: 'devoto', config: { tipo: 'ia', hint: 'Los datos pueden estar en hojas con nombres de fecha (ej: JUEVES 02-04). Busca columnas de código, descripción y precio neto.' } },
+  {
+    nombre: 'Libesa', slug: 'libesa',
+    config: { colSku: 'Código', colNombre: 'Descripcion', colPrecio: 'Precio' },
+  },
   {
     nombre: 'Pronobel', slug: 'pronobel',
     config: { colSku: 'Material', colNombre: 'Texto breve material', colPrecio: 'CASTILLA Y ARAGON', colMarca: 'Marca', colBarras: 'BARRAS' },
@@ -35,7 +41,7 @@ const LIBRERIA = [
   },
   {
     nombre: 'ARON', slug: 'aron',
-    config: { colSku: 'CODIGO', colNombre: 'DESCRIPCION ARTICULO', colPrecio: 'NETO FINAL' },
+    config: { colSku: 'CODIGO', colNombre: 'DESCRIPCION ARTICULO', colPrecio: 'Neto Final $' },
   },
   {
     nombre: 'Artel', slug: 'artel',
@@ -84,9 +90,15 @@ const ASEO = [
     nombre: 'BRILLEX', slug: 'brillex',
     config: { colSku: 'Codigo Odoo', colNombre: 'DESCRIPCION', colPrecio: 'precio neto unitario' },
   },
-  { nombre: 'CHIPRO',            slug: 'chipro',          config: { tipo: 'ia' } },
-  { nombre: 'DURANDIN',          slug: 'durandin',        config: { tipo: 'ia' } },
-  { nombre: 'ELITE',             slug: 'elite',           config: { tipo: 'ia' } },
+  { nombre: 'CHIPRO',   slug: 'chipro',   config: { tipo: 'ia', hint: 'El precio unitario está en una columna sin encabezado visible (aprox. columna 11-12). El código de producto está en la columna A.' } },
+  {
+    nombre: 'DURANDIN', slug: 'durandin',
+    config: { colSku: 'Código\r\nPT', colNombre: 'Descripción', colPrecio: 'Precio de Facturación Lista Actual' },
+  },
+  {
+    nombre: 'ELITE', slug: 'elite',
+    config: { colSku: 'Sku', colNombre: 'Descripción', colPrecio: 'PRECIO LISTA DISTRIBUIDOR CAPILAR' },
+  },
   {
     nombre: 'FIBRO', slug: 'fibro',
     config: { colSku: 'CODIGO', colNombre: 'DESCRIPCIÓN', colPrecio: 'L1', colMarca: 'MARCA', colBarras: 'EAN' },
@@ -102,7 +114,7 @@ const ASEO = [
   { nombre: 'LLABRES',           slug: 'llabres',         config: { tipo: 'ia' } },
   {
     nombre: 'MGP', slug: 'mgp',
-    config: { tipo: 'ia' },
+    config: { colSku: 'CÓDIGO', colNombre: 'PRODUCTO', colPrecio: 'PRECIO ACTUAL', hoja: 'Productos' },
   },
   {
     nombre: 'NEO', slug: 'neo',
@@ -112,9 +124,15 @@ const ASEO = [
     nombre: 'ROMMEL', slug: 'rommel',
     config: { colSku: 'N°', colNombre: 'DESCRIPCION', colPrecio: 'VALOR' },
   },
-  { nombre: 'SAFE PRO',          slug: 'safe-pro',        config: { tipo: 'ia' } },
-  { nombre: 'SAN REMO',          slug: 'san-remo',        config: { tipo: 'ia' } },
-  { nombre: 'VIRUTEX',           slug: 'virutex',         config: { tipo: 'ia' } },
+  {
+    nombre: 'SAFE PRO', slug: 'safe-pro',
+    config: { colSku: 'Código', colNombre: 'Producto', colPrecio: 'Venta sobre 1MM', colUnidadesCaja: 'Und. por Caja' },
+  },
+  {
+    nombre: 'SAN REMO', slug: 'san-remo',
+    config: { colSku: 'Cod. Prov.', colNombre: 'Descripción', colPrecio: 'PRECIO  NETO UNIDAD', colMarca: 'Linea' },
+  },
+  { nombre: 'VIRUTEX', slug: 'virutex', config: { tipo: 'ia', hint: 'La columna de precio unitario tiene nombre variable según el mes (ej: "LP UN. SEPT"). Busca la columna que contenga "LP UN" y extrae ese precio.' } },
   {
     nombre: 'GREEN WORLD CHILE', slug: 'green-world-chile',
     config: { tipo: 'ia' },
@@ -124,7 +142,7 @@ const ASEO = [
 // ── Proveedores alimentos ─────────────────────────────────────────────────────
 const ALIMENTOS = [
   { nombre: '4M ALIMENTOS', slug: '4m-alimentos', config: { tipo: 'ia' } },
-  { nombre: 'CAMBIASO',     slug: 'cambiaso',     config: { tipo: 'ia' } },
+  { nombre: 'CAMBIASO',     slug: 'cambiaso',     config: { tipo: 'cambiaso' } },
   { nombre: 'COLISEO',      slug: 'coliseo',      config: { tipo: 'ia' } },
   {
     nombre: 'TRES MONTES', slug: 'tres-montes',

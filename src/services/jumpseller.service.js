@@ -33,23 +33,34 @@ async function jsPut(path, body) {
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
+const normNombre = s => String(s || '')
+  .toLowerCase()
+  .normalize('NFD').replace(/[̀-ͯ]/g, '')
+  .replace(/[^\w\s]/g, ' ')
+  .replace(/\s+/g, ' ')
+  .trim();
+
 /**
- * Pagina los productos de JumpSeller y construye un mapa sku → {productId, variantId}.
- * Se detiene cuando encuentra todos los SKUs buscados o agota las páginas.
+ * Pagina todos los productos de JumpSeller y construye dos mapas:
+ *   mapaSku:    sku exacto   → { productId }
+ *   mapaNombre: nombre norm. → { productId }
  */
-async function construirMapaSku(skuSet) {
-  const mapa  = {};
+async function construirMapas() {
+  const mapaSku    = {};
+  const mapaNombre = {};
   let   page  = 1;
   const limit = 100;
 
-  while (skuSet.size > 0) {
+  while (true) {
     const products = await jsGet('/products.json', `limit=${limit}&page=${page}`);
     if (!Array.isArray(products) || products.length === 0) break;
 
     for (const p of products) {
-      if (p.sku && skuSet.has(p.sku)) {
-        mapa[p.sku] = { productId: p.id };
-        skuSet.delete(p.sku);
+      const sku = String(p.sku || p.variants?.[0]?.sku || '').trim();
+      if (sku) mapaSku[sku] = { productId: p.id };
+      if (p.name) {
+        const norm = normNombre(p.name);
+        if (norm) mapaNombre[norm] = { productId: p.id };
       }
     }
 
@@ -58,7 +69,7 @@ async function construirMapaSku(skuSet) {
     await sleep(DELAY);
   }
 
-  return mapa;
+  return { mapaSku, mapaNombre };
 }
 
 /**
@@ -67,16 +78,20 @@ async function construirMapaSku(skuSet) {
  * @returns {Array<{id, sku, ok, error?}>}
  */
 async function publicarPrecios(cambios) {
-  const skuSet = new Set(cambios.map(c => c.sku));
-  const mapa   = await construirMapaSku(new Set(skuSet));
-
+  const { mapaSku, mapaNombre } = await construirMapas();
   const resultados = [];
 
   for (const c of cambios) {
-    const info = mapa[c.sku];
+    let info           = mapaSku[c.sku] ?? null;
+    let matchPorNombre = false;
+
+    if (!info && c.nombre) {
+      info = mapaNombre[normNombre(c.nombre)] ?? null;
+      if (info) matchPorNombre = true;
+    }
 
     if (!info) {
-      resultados.push({ id: c.id, sku: c.sku, ok: false, error: 'SKU no encontrado en JumpSeller' });
+      resultados.push({ id: c.id, sku: c.sku, ok: false, error: 'No encontrado en JumpSeller (SKU ni nombre)' });
       continue;
     }
 
@@ -84,7 +99,7 @@ async function publicarPrecios(cambios) {
       await jsPut(`/products/${info.productId}.json`, {
         product: { price: c.precioVenta },
       });
-      resultados.push({ id: c.id, sku: c.sku, ok: true });
+      resultados.push({ id: c.id, sku: c.sku, ok: true, matchPorNombre });
       await sleep(DELAY);
     } catch (e) {
       resultados.push({ id: c.id, sku: c.sku, ok: false, error: e.message });
@@ -124,4 +139,4 @@ async function marcarPublicados(ids) {
   });
 }
 
-module.exports = { publicarPrecios, generarCSVImport, marcarPublicados };
+module.exports = { publicarPrecios, generarCSVImport, marcarPublicados, construirMapas, normNombre };

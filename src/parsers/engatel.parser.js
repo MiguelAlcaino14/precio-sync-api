@@ -1,8 +1,10 @@
-const XLSX   = require('xlsx');
-const OpenAI = require('openai');
-const prisma = require('../db');
+const XLSX              = require('xlsx');
+const OpenAI            = require('openai');
+const prisma            = require('../db');
+const { esperarTurno }  = require('../services/ia-limiter');
 
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const MAX_REINTENTOS = 2;
 const BASE_JS = 'https://api.jumpseller.com/v1';
 const DELAY   = 650;
 
@@ -75,12 +77,9 @@ async function matchConIA(productosEngatel, productosJS) {
   const listaEngatel = productosEngatel.map((p, i) => `${i + 1}. ${p.nombre}`).join('\n');
   const listaJS = productosJS.map(p => `ID:${p.id} SKU:${p.sku || 'sin-sku'} | ${p.nombre}`).join('\n');
 
-  const res = await client.chat.completions.create({
-    model:      'gpt-4o-mini',
-    max_tokens: 8192,
-    messages: [{
-      role:    'user',
-      content: `Eres un experto en matching de nombres de productos de papelería y consumibles de oficina en Chile.
+  const messages = [{
+    role:    'user',
+    content: `Eres un experto en matching de nombres de productos de papelería y consumibles de oficina en Chile.
 
 LISTA ENGATEL (proveedor, nombres abreviados):
 ${listaEngatel}
@@ -98,12 +97,28 @@ Reglas de matching:
 
 Devuelve SOLO un JSON array sin texto adicional:
 [{"nombreEngatel":"nombre exacto de ENGATEL","sku":"sku de JumpSeller","jumpsellerProductId":ID_numerico}]`,
-    }],
-  });
+  }];
 
-  const texto = res.choices[0].message.content.trim();
+  let texto;
+  for (let intento = 0; intento <= MAX_REINTENTOS; intento++) {
+    try {
+      await esperarTurno();
+      const res = await client.chat.completions.create({ model: 'gpt-4o-mini', max_tokens: 8192, messages });
+      texto = res.choices[0].message.content.trim();
+      break;
+    } catch (err) {
+      if (intento === MAX_REINTENTOS) throw err;
+      const delayMs = (intento + 1) * 5000;
+      console.warn(`[ENGATEL-IA] Error intento ${intento + 1}/${MAX_REINTENTOS + 1}, reintentando en ${delayMs / 1000}s: ${err.message}`);
+      await new Promise(r => setTimeout(r, delayMs));
+    }
+  }
+
   const match = texto.match(/\[[\s\S]*\]/);
-  if (!match) throw new Error('IA no devolvió JSON válido para matching ENGATEL');
+  if (!match) {
+    console.error('[ENGATEL-IA] Respuesta sin JSON válido:', texto.slice(0, 400));
+    throw new Error('IA no devolvió JSON válido para matching ENGATEL');
+  }
   return JSON.parse(match[0]);
 }
 

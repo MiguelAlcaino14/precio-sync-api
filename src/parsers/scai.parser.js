@@ -1,10 +1,12 @@
-const mammoth = require('mammoth');
-const OpenAI  = require('openai');
-const prisma  = require('../db');
+const mammoth           = require('mammoth');
+const OpenAI            = require('openai');
+const prisma            = require('../db');
+const { esperarTurno }  = require('../services/ia-limiter');
 
-const BASE_JS = 'https://api.jumpseller.com/v1';
-const DELAY   = 650;
-const SLUG    = 'scai';
+const BASE_JS        = 'https://api.jumpseller.com/v1';
+const DELAY          = 650;
+const SLUG           = 'scai';
+const MAX_REINTENTOS = 2;
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
@@ -111,12 +113,9 @@ async function matchConIA(productosSinMapeo, productosJS) {
   const listaScai = productosSinMapeo.map((p, i) => `${i + 1}. ${p.nombre}`).join('\n');
   const listaJS   = productosJS.map(p => `ID:${p.id} SKU:${p.sku || 'sin-sku'} | ${p.nombre}`).join('\n');
 
-  const res = await client.chat.completions.create({
-    model:      'gpt-4o-mini',
-    max_tokens: 8192,
-    messages: [{
-      role:    'user',
-      content: `Eres un experto en matching de nombres de productos de pilas y baterías (Duracell, Energizer, etc.) en Chile.
+  const messages = [{
+    role:    'user',
+    content: `Eres un experto en matching de nombres de productos de pilas y baterías (Duracell, Energizer, etc.) en Chile.
 
 LISTA SCAI (proveedor, nombres del documento):
 ${listaScai}
@@ -134,12 +133,28 @@ Reglas de matching:
 
 Devuelve SOLO un JSON array sin texto adicional:
 [{"nombreScai":"nombre exacto de SCAI","sku":"sku de JumpSeller","jumpsellerProductId":ID_numerico}]`,
-    }],
-  });
+  }];
 
-  const texto = res.choices[0].message.content.trim();
+  let texto;
+  for (let intento = 0; intento <= MAX_REINTENTOS; intento++) {
+    try {
+      await esperarTurno();
+      const res = await client.chat.completions.create({ model: 'gpt-4o-mini', max_tokens: 8192, messages });
+      texto = res.choices[0].message.content.trim();
+      break;
+    } catch (err) {
+      if (intento === MAX_REINTENTOS) throw err;
+      const delayMs = (intento + 1) * 5000;
+      console.warn(`[SCAI-IA] Error intento ${intento + 1}/${MAX_REINTENTOS + 1}, reintentando en ${delayMs / 1000}s: ${err.message}`);
+      await new Promise(r => setTimeout(r, delayMs));
+    }
+  }
+
   const match = texto.match(/\[[\s\S]*\]/);
-  if (!match) throw new Error('IA no devolvió JSON válido para matching SCAI');
+  if (!match) {
+    console.error('[SCAI-IA] Respuesta sin JSON válido:', texto.slice(0, 400));
+    throw new Error('IA no devolvió JSON válido para matching SCAI');
+  }
   return JSON.parse(match[0]);
 }
 
