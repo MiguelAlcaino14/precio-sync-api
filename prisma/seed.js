@@ -32,7 +32,7 @@ const LIBRERIA = [
   },
   {
     nombre: 'ARON', slug: 'aron',
-    config: { colSku: 'CODIGO', colNombre: 'DESCRIPCION ARTICULO', colPrecio: 'Neto Final $' },
+    config: { colSku: 'CODIGO', colNombre: 'DESCRIPCION ARTICULO', colPrecio: 'NETO FINAL' },
   },
   {
     nombre: 'Artel', slug: 'artel',
