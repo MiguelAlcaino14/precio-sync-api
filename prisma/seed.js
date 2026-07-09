@@ -148,7 +148,6 @@ const ASEO = [
   {
     nombre: 'GREEN WORLD CHILE', slug: 'green-world-chile',
     config: { tipo: 'ia' },
-    activo: false, // solo envía .ppt — no importable hasta que provean Excel/PDF
   },
 ];
 
