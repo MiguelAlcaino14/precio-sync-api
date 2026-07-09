@@ -42,8 +42,11 @@ const MIME_PERMITIDOS = new Set([
   'application/pdf',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   'application/msword',
+  'image/png',
+  'image/jpeg',
+  'image/webp',
 ]);
-const EXT_PERMITIDAS = new Set(['xlsx', 'xls', 'xlsm', 'csv', 'pdf', 'docx', 'doc']);
+const EXT_PERMITIDAS = new Set(['xlsx', 'xls', 'xlsm', 'csv', 'pdf', 'docx', 'doc', 'png', 'jpg', 'jpeg', 'webp']);
 
 const upload = multer({
   storage: multer.memoryStorage(),

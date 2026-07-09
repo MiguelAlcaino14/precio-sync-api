@@ -71,15 +71,16 @@ router.post('/jumpseller', requireAdmin, syncLimiter, async (req, res) => {
 
       for (const p of products) {
         totalJS++;
-        const precio = Number(p.price);
+        const precio = Number(p.price) || Number(p.variants?.[0]?.price) || 0;
         if (!precio || precio <= 0) continue;
 
         let producto = null;
         let matchadoPorNombre = false;
 
-        // 1. Match por SKU
-        if (p.sku) {
-          producto = porSku.get(String(p.sku).trim()) ?? null;
+        // 1. Match por SKU (producto o variant — JumpSeller a veces pone SKU en variant)
+        const skuJS = String(p.sku || p.variants?.[0]?.sku || '').trim();
+        if (skuJS) {
+          producto = porSku.get(skuJS) ?? null;
         }
 
         // 2. Match por nombre si no tiene SKU o no encontró por SKU

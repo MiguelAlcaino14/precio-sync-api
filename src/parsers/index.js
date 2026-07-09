@@ -28,7 +28,7 @@ async function parsearArchivo(buffer, tipo, config, proveedorSlug) {
       console.warn(`[parser] ANTHROPIC_API_KEY no configurada, usando autodetección para ${tipo}`);
       return { productos: parsearAutodetect(buffer, proveedorSlug), sugerencia: null };
     }
-    throw new Error('Parser IA requerido para PDF pero ANTHROPIC_API_KEY no está configurada');
+    throw new Error(`Parser IA requerido para "${tipo}" pero ANTHROPIC_API_KEY no está configurada`);
   }
 
   switch (tipo.toLowerCase()) {

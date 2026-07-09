@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 const LIBRERIA = [
   // Parsers especiales
   { nombre: 'ACCO Brand',      slug: 'acco-brand',   config: { tipo: 'acco-brand' } },
-  { nombre: 'Carlos Gardy',    slug: 'carlos-gardy', config: { tipo: 'carlos-gardy' } },
+  { nombre: 'Carlos Gardy',    slug: 'carlos-gardy', config: { tipo: 'ia' } },
   { nombre: 'ENGATEL',         slug: 'engatel',      config: { tipo: 'engatel' } },
   { nombre: 'SCAI',            slug: 'scai',         config: { tipo: 'scai' } },
 
@@ -68,42 +68,12 @@ const LIBRERIA = [
 
   // Configs detalladas (xlsx con precioIncluyeIVA)
   {
-    nombre: 'Castilla y Aragón', slug: 'castilla-aragon',
-    config: {
-      tipo: 'xlsx', hoja: 0,
-      colSku: 'CÓDIGO', colPrecio: 'P. FINAL UN. NETO',
-      colNombre: 'DESCRIPCION PRODUCTO', colMarca: 'MARCA', colBarras: 'EAN',
-      precioIncluyeIVA: false,
-    },
-  },
-  {
     nombre: 'Torre y Colón', slug: 'torre-colon',
     config: {
       tipo: 'xlsx', hoja: 0,
       colSku: 'Cod.', colPrecio: 'PRECIO MAYORISTA',
       colNombre: 'Descripción Material', colMarca: 'Sector',
       precioIncluyeIVA: false,
-    },
-  },
-  {
-    nombre: 'Hinzquin', slug: 'hinzquin',
-    config: {
-      tipo: 'pdf',
-      patronCodigo: '^\\d{6,7}',
-      precioIncluyeIVA: false,
-      factorIVA: 1.19,
-      separadorMiles: '.',
-    },
-  },
-  {
-    nombre: 'Proarte', slug: 'proarte',
-    config: {
-      tipo: 'xlsx',
-      hoja: 'GENERAL 2024 - 2025',
-      colSku: 'Código', colPrecio: 'Precio',
-      colNombre: 'Descripción', colBarras: 'Código de Barra',
-      precioIncluyeIVA: false,
-      factorIVA: 1.19,
     },
   },
 ];
@@ -132,7 +102,7 @@ const ASEO = [
   { nombre: 'LLABRES',           slug: 'llabres',         config: { tipo: 'ia' } },
   {
     nombre: 'MGP', slug: 'mgp',
-    config: { colSku: 'CÓDIGO', colNombre: 'PRODUCTO', colPrecio: 'PRECIO ACTUAL' },
+    config: { tipo: 'ia' },
   },
   {
     nombre: 'NEO', slug: 'neo',
