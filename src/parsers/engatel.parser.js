@@ -1,8 +1,8 @@
-const XLSX      = require('xlsx');
-const Anthropic = require('@anthropic-ai/sdk');
-const prisma    = require('../db');
+const XLSX                   = require('xlsx');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
+const prisma                 = require('../db');
 
-const client  = new Anthropic();
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const BASE_JS = 'https://api.jumpseller.com/v1';
 const DELAY   = 650;
 
@@ -75,12 +75,9 @@ async function matchConIA(productosEngatel, productosJS) {
   const listaEngatel = productosEngatel.map((p, i) => `${i + 1}. ${p.nombre}`).join('\n');
   const listaJS = productosJS.map(p => `ID:${p.id} SKU:${p.sku || 'sin-sku'} | ${p.nombre}`).join('\n');
 
-  const msg = await client.messages.create({
-    model: 'claude-haiku-4-5-20251001',
-    max_tokens: 8192,
-    messages: [{
-      role: 'user',
-      content: `Eres un experto en matching de nombres de productos de papelería y consumibles de oficina en Chile.
+  const model  = genAI.getGenerativeModel({ model: 'gemini-2.0-flash', generationConfig: { maxOutputTokens: 8192 } });
+  const result = await model.generateContent(
+    `Eres un experto en matching de nombres de productos de papelería y consumibles de oficina en Chile.
 
 LISTA ENGATEL (proveedor, nombres abreviados):
 ${listaEngatel}
@@ -97,11 +94,10 @@ Reglas de matching:
 - Si no encuentras match claro, omite ese producto
 
 Devuelve SOLO un JSON array sin texto adicional:
-[{"nombreEngatel":"nombre exacto de ENGATEL","sku":"sku de JumpSeller","jumpsellerProductId":ID_numerico}]`,
-    }],
-  });
+[{"nombreEngatel":"nombre exacto de ENGATEL","sku":"sku de JumpSeller","jumpsellerProductId":ID_numerico}]`
+  );
 
-  const texto = msg.content[0].text.trim();
+  const texto = result.response.text().trim();
   const match = texto.match(/\[[\s\S]*\]/);
   if (!match) throw new Error('IA no devolvió JSON válido para matching ENGATEL');
   return JSON.parse(match[0]);

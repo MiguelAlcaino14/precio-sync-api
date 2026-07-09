@@ -1,6 +1,6 @@
-const mammoth  = require('mammoth');
-const Anthropic = require('@anthropic-ai/sdk');
-const prisma    = require('../db');
+const mammoth                = require('mammoth');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
+const prisma                 = require('../db');
 
 const BASE_JS = 'https://api.jumpseller.com/v1';
 const DELAY   = 650;
@@ -106,17 +106,14 @@ async function traerProductosJumpseller() {
  * @returns {Array<{ nombreScai, sku, jumpsellerProductId }>}
  */
 async function matchConIA(productosSinMapeo, productosJS) {
-  const client = new Anthropic();
+  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash', generationConfig: { maxOutputTokens: 8192 } });
 
   const listaScai = productosSinMapeo.map((p, i) => `${i + 1}. ${p.nombre}`).join('\n');
   const listaJS   = productosJS.map(p => `ID:${p.id} SKU:${p.sku || 'sin-sku'} | ${p.nombre}`).join('\n');
 
-  const msg = await client.messages.create({
-    model:      'claude-haiku-4-5-20251001',
-    max_tokens: 8192,
-    messages: [{
-      role: 'user',
-      content: `Eres un experto en matching de nombres de productos de pilas y baterías (Duracell, Energizer, etc.) en Chile.
+  const result = await model.generateContent(
+    `Eres un experto en matching de nombres de productos de pilas y baterías (Duracell, Energizer, etc.) en Chile.
 
 LISTA SCAI (proveedor, nombres del documento):
 ${listaScai}
@@ -133,11 +130,10 @@ Reglas de matching:
 - Si no encuentras match claro, omite ese producto
 
 Devuelve SOLO un JSON array sin texto adicional:
-[{"nombreScai":"nombre exacto de SCAI","sku":"sku de JumpSeller","jumpsellerProductId":ID_numerico}]`,
-    }],
-  });
+[{"nombreScai":"nombre exacto de SCAI","sku":"sku de JumpSeller","jumpsellerProductId":ID_numerico}]`
+  );
 
-  const texto = msg.content[0].text.trim();
+  const texto = result.response.text().trim();
   const match = texto.match(/\[[\s\S]*\]/);
   if (!match) throw new Error('IA no devolvió JSON válido para matching SCAI');
   return JSON.parse(match[0]);

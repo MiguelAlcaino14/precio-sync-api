@@ -7,13 +7,13 @@ const { parsearAccoBrand }   = require('./acco-brand.parser');
 const { parsearScai }        = require('./scai.parser');
 const { parsearAutodetect }  = require('./autodetect.parser');
 
-const tieneApiKey = () => !!process.env.ANTHROPIC_API_KEY;
+const tieneApiKey = () => !!process.env.GEMINI_API_KEY;
 
 /**
  * Parsea un archivo según la config del proveedor.
  * Siempre devuelve { productos, sugerencia }.
  * sugerencia es null salvo cuando el parser ia detecta columnas estructuradas.
- * Si tipo=ia pero no hay ANTHROPIC_API_KEY, intenta autodetección de columnas Excel.
+ * Si tipo=ia pero no hay GEMINI_API_KEY, intenta autodetección de columnas Excel.
  */
 async function parsearArchivo(buffer, tipo, config, proveedorSlug) {
   if (config?.tipo === 'engatel')      return { productos: await parsearEngatel(buffer),             sugerencia: null };
@@ -25,10 +25,10 @@ async function parsearArchivo(buffer, tipo, config, proveedorSlug) {
     if (tieneApiKey()) return await parsearConIA(buffer, tipo);
     // Sin API key: autodetección para Excel, PDF falla
     if (['xlsx', 'xls', 'csv'].includes(tipo.toLowerCase())) {
-      console.warn(`[parser] ANTHROPIC_API_KEY no configurada, usando autodetección para ${tipo}`);
+      console.warn(`[parser] GEMINI_API_KEY no configurada, usando autodetección para ${tipo}`);
       return { productos: parsearAutodetect(buffer, proveedorSlug), sugerencia: null };
     }
-    throw new Error(`Parser IA requerido para "${tipo}" pero ANTHROPIC_API_KEY no está configurada`);
+    throw new Error(`Parser IA requerido para "${tipo}" pero GEMINI_API_KEY no está configurada`);
   }
 
   switch (tipo.toLowerCase()) {
@@ -40,7 +40,7 @@ async function parsearArchivo(buffer, tipo, config, proveedorSlug) {
       }
       // Sin columnas configuradas: autodetección
       if (!tieneApiKey()) {
-        console.warn(`[parser] Sin colSku/colPrecio y sin ANTHROPIC_API_KEY, usando autodetección`);
+        console.warn(`[parser] Sin colSku/colPrecio y sin GEMINI_API_KEY, usando autodetección`);
         return { productos: parsearAutodetect(buffer, proveedorSlug), sugerencia: null };
       }
       return await parsearConIA(buffer, tipo);
@@ -48,7 +48,7 @@ async function parsearArchivo(buffer, tipo, config, proveedorSlug) {
       return { productos: await parsearPDF(buffer, config), sugerencia: null };
     default:
       if (tieneApiKey()) return await parsearConIA(buffer, tipo);
-      throw new Error(`Tipo "${tipo}" requiere ANTHROPIC_API_KEY para parsear`);
+      throw new Error(`Tipo "${tipo}" requiere GEMINI_API_KEY para parsear`);
   }
 }
 
