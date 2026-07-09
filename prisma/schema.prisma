@@ -22,6 +22,7 @@ model Proveedor {
   productos Producto[]
   archivos  ArchivoImportado[]
   reglas    ReglaMarkup[]
+  ofertas   Oferta[]
 }
 
 model Producto {
@@ -40,6 +41,7 @@ model Producto {
   costos       PrecioCosto[]
   precioVenta  PrecioVenta?
   cambios      CambioPendiente[]
+  ofertas      Oferta[]
 }
 
 model PrecioCosto {
@@ -129,6 +131,25 @@ model NombreMapeo {
   createdAt           DateTime @default(now())
 
   @@unique([proveedorSlug, nombreProveedor])
+}
+
+model Oferta {
+  id           String    @id @default(cuid())
+  nombre       String
+  tipo         String    // 'proveedor' | 'marca' | 'categoria' | 'producto'
+  proveedorId  String?
+  marca        String?
+  categoria    String?
+  productoId   String?
+  descuentoPct Float
+  fechaInicio  DateTime?
+  fechaFin     DateTime?
+  activa       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  proveedor Proveedor? @relation(fields: [proveedorId], references: [id])
+  producto  Producto?  @relation(fields: [productoId], references: [id])
 }
 
 model Notificacion {

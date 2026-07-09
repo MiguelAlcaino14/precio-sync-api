@@ -1,7 +1,9 @@
 const express = require('express');
 const router  = express.Router();
 const prisma  = require('../db');
+const { requireAdmin } = require('../middleware/auth');
 const { publicarPrecios } = require('../services/jumpseller.service');
+const { aplicarOferta }   = require('../services/ofertas.service');
 
 // POST /api/publicar  — publica cambios aprobados en JumpSeller
 router.post('/', async (req, res) => {
@@ -12,26 +14,33 @@ router.post('/', async (req, res) => {
 
   const cambios = await prisma.cambioPendiente.findMany({
     where:   { id: { in: ids }, estado: 'aprobado' },
-    include: { producto: true },
+    include: { producto: { include: { proveedor: true } } },
   });
 
   if (!cambios.length) {
     return res.status(400).json({ error: 'No hay cambios aprobados con esos IDs' });
   }
 
-  // Obtener precios de venta aprobados
   const preciosVenta = await prisma.precioVenta.findMany({
     where: { productoId: { in: cambios.map(c => c.productoId) } },
   });
   const precioMap = Object.fromEntries(preciosVenta.map(p => [p.productoId, p.precio]));
 
-  const payload = cambios
-    .map(c => ({
+  // Aplicar ofertas activas sobre el precio de venta
+  const payload = [];
+  for (const c of cambios) {
+    const precioBase = precioMap[c.productoId] ?? c.precioSugerido;
+    if (precioBase == null) continue;
+
+    const { precioFinal, oferta } = await aplicarOferta(c.producto, precioBase);
+
+    payload.push({
       id:          c.id,
       sku:         c.producto.sku,
-      precioVenta: precioMap[c.productoId] ?? c.precioSugerido,
-    }))
-    .filter(c => c.precioVenta != null);
+      precioVenta: precioFinal,
+      ...(oferta ? { ofertaAplicada: oferta.nombre, descuentoPct: oferta.descuentoPct } : {}),
+    });
+  }
 
   if (!payload.length) {
     return res.status(400).json({ error: 'Los cambios seleccionados no tienen precio de venta asignado' });
