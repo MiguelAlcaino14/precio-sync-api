@@ -12,7 +12,7 @@ const LIBRERIA = [
 
   // PDF / IA
   { nombre: 'Halley',   slug: 'halley',   config: { tipo: 'ia', hint: 'El encabezado dice "VALORES MAS IVA", lo que significa que los precios listados YA INCLUYEN IVA. Divide cada precio por 1.19 para obtener el precio neto. Formato de precio: "$755" → divide por 1.19 → 635 neto. No hay SKU numérico; genera un código corto desde las primeras palabras del nombre del producto.' } },
-  { nombre: 'REM MAX',  slug: 'rem-max',  config: { tipo: 'ia', hint: 'Lista tabulada con columna "UNIT. NETO" que contiene el precio NETO sin IVA (no dividir por 1.19, el encabezado "+19% IVA" indica que IVA se agrega al facturar, no está incluido). SKU es el código numérico de 7 dígitos al inicio de cada fila (ej: 7100592). Precios con punto como separador de miles (ej: 14.879 = 14879 pesos).' } },
+  { nombre: 'REM MAX',  slug: 'rem-max',  config: {} },
   { nombre: 'TECNIGOM', slug: 'tecnigom', config: { tipo: 'ia', hint: 'Catálogo en formato de bloques (no tabular). Cada producto tiene: "COD. XXXXXX" (SKU), "PRECIO: $ YYY" (precio unitario neto sin IVA), y un nombre de producto en el bloque. Extrae el SKU del campo "COD.", el precio del campo "PRECIO:", y el nombre del encabezado del bloque o línea descriptiva.' } },
 
   // IA (multi-hoja o estructura variable)

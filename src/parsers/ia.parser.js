@@ -264,7 +264,7 @@ ${formatoSalida}
 <DOCUMENTO>
 ${contenido}
 </DOCUMENTO>`,
-  }], 8192);
+  }], 16000);
 
   let productos = [], sugerencia = null;
 
