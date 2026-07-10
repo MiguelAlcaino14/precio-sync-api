@@ -56,11 +56,12 @@ async function construirMapas() {
     if (!Array.isArray(products) || products.length === 0) break;
 
     for (const p of products) {
-      const sku = String(p.sku || p.variants?.[0]?.sku || '').trim();
-      if (sku) mapaSku[sku] = { productId: p.id };
-      if (p.name) {
-        const norm = normNombre(p.name);
-        if (norm) mapaNombre[norm] = { productId: p.id };
+      const prod = p.product ?? p; // JumpSeller wraps cada item en {product: {...}}
+      const sku  = String(prod.sku || prod.variants?.[0]?.sku || '').trim();
+      if (sku) mapaSku[sku] = { productId: prod.id };
+      if (prod.name) {
+        const norm = normNombre(prod.name);
+        if (norm) mapaNombre[norm] = { productId: prod.id };
       }
     }
 
