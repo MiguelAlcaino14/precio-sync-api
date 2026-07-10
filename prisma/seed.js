@@ -18,7 +18,7 @@ const LIBRERIA = [
   // IA (multi-hoja o estructura variable)
   {
     nombre: 'Demarka', slug: 'demarka',
-    config: { colSku: 'CODIGO ADETEC', colNombre: 'DESCRIPCION', colPrecio: 'PRECIO LISTA' },
+    config: { tipo: 'ia', hint: 'Lista de precios con múltiples hojas por categoría (ej: Adetec, GlobosTe, Zebra). En cada hoja: colSku es el código alfanumérico del producto, colNombre es la descripción, colPrecio es el precio neto sin IVA. Algunos formatos tienen el precio como "0.15 (c/IVA)" — en ese caso dividir por 1.19.' },
   },
   { nombre: 'Devoto', slug: 'devoto', config: { tipo: 'ia', hint: 'El archivo tiene varias hojas; la hoja con precios tiene nombre de fecha (ej: "JUEVES 02-04"). En esa hoja la primera fila es un título ("LISTA DE PRECIOS...") y la segunda fila tiene los encabezados: BARRAS, CÓDIGO, DESCRIPCIÓN, ÍTEM, PRECIO. colSku="CÓDIGO", colNombre="DESCRIPCIÓN", colPrecio="PRECIO". Ignorar hojas de stock (tienen columnas "En stock", "Picking", "Disponible" pero sin precio).' } },
   {
@@ -31,17 +31,17 @@ const LIBRERIA = [
   },
   {
     nombre: 'Teknofas', slug: 'teknofas',
-    config: { colSku: 'CODIGO', colNombre: 'DESCRIPCION', colPrecio: 'Precio unit.' },
+    config: { colSku: 'CODIGO', colNombre: 'DESCRIPCION', colPrecio: 'Precio unit.', colUnidadesCaja: 'UNID X CAJA' },
   },
 
   // Excel genérico
   {
     nombre: 'Adioffice', slug: 'adioffice',
-    config: { colSku: 'GP', colNombre: 'DESCRIPCIÓN', colPrecio: 'CC' },
+    config: { colSku: 'GP', colNombre: 'DESCRIPCIÓN', colPrecio: 'CC', colUnidadesCaja: 'U X CAJA' },
   },
   {
     nombre: 'ARON', slug: 'aron',
-    config: { colSku: 'CODIGO', colNombre: 'DESCRIPCION ARTICULO', colPrecio: 'Neto Final $' },
+    config: { colSku: 'CODIGO', colNombre: 'DESCRIPCION ARTICULO', colPrecio: 'NETO FINAL', colUnidadesCaja: 'CAJA' },
   },
   {
     nombre: 'Artel', slug: 'artel',
@@ -53,7 +53,7 @@ const LIBRERIA = [
   },
   {
     nombre: 'FDS', slug: 'fds',
-    config: { tipo: 'ia', hint: 'El archivo tiene múltiples hojas por categoría/marca (ej: CALCULADORAS, STUDMARK, MAS ARTE, MISTER OFFICE, HAVIT). En cada hoja: colSku="CODIGO", colNombre="DESCRIPCION", colPrecio="Precio Final" (precio neto ya con descuento aplicado, sin IVA). Ignorar columnas "LISTA PRECIO" (precio bruto) y "Desc" (factor de descuento).' },
+    config: { tipo: 'ia', hint: 'El archivo puede tener dos formatos. Formato A (multi-hoja): hojas por categoría/marca, colSku="CODIGO", colNombre="DESCRIPCION", colPrecio="Precio Final" (neto con descuento, sin IVA). Formato B (hoja única "Hoja1"): colSku="CODIGO", colNombre="DESCRIPCION", colPrecio="LISTA PRECIO" (precio neto). En ambos casos el precio es neto sin IVA.' },
   },
   {
     nombre: 'IMEX', slug: 'imex',
@@ -69,7 +69,7 @@ const LIBRERIA = [
   },
   {
     nombre: 'Vieri', slug: 'vieri',
-    config: { colSku: 'SKU', colNombre: 'DESCRIPCIÓN', colPrecio: 'NETO 01P', colMarca: 'SÚPERFAMILIA' },
+    config: { colSku: 'SKU', colNombre: 'DESCRIPCIÓN', colPrecio: 'NETO 01P', colMarca: 'SÚPERFAMILIA', colUnidadesCaja: 'INNER' },
   },
 
   // Configs detalladas (xlsx con precioIncluyeIVA)
@@ -79,6 +79,7 @@ const LIBRERIA = [
       tipo: 'xlsx', hoja: 0,
       colSku: 'Cod.', colPrecio: 'PVC MAYORISTA',
       colNombre: 'Descripción Material', colMarca: 'Sector',
+      colUnidadesCaja: 'Uni Caja', colUnidadesPallet: 'Uni Pallet',
       precioIncluyeIVA: false,
     },
   },
@@ -101,7 +102,7 @@ const ASEO = [
   },
   {
     nombre: 'FIBRO', slug: 'fibro',
-    config: { colSku: 'CODIGO', colNombre: 'DESCRIPCIÓN', colPrecio: 'L1', colMarca: 'MARCA', colBarras: 'EAN' },
+    config: { colSku: 'CODIGO', colNombre: 'DESCRIPCIÓN', colPrecio: 'L1', colMarca: 'MARCA', colBarras: 'EAN', colUnidadesCaja: 'CAP' },
   },
   {
     nombre: 'IMPOEX', slug: 'impoex',
@@ -143,7 +144,7 @@ const ALIMENTOS = [
   { nombre: 'COLISEO',      slug: 'coliseo',      config: { tipo: 'ia', hint: 'Lista con 4 columnas de precio según volumen: "1 PALLET" (mínimo), "1/2 PALLET", "CAMADA" y "REPARTO SMALL" (máximo). Precios netos sin IVA. Usar la columna "REPARTO SMALL" (la última, más cara, para pedidos pequeños). Formato de precio: "1.180$" → 1180 (punto es miles, ignorar $). No hay SKU numérico; genera un código desde las palabras clave del nombre del producto.' } },
   {
     nombre: 'TRES MONTES', slug: 'tres-montes',
-    config: { colSku: 'Cod. Material', colNombre: 'Material', colPrecio: 'Precio Neto x Unidad', colMarca: 'Marca' },
+    config: { colSku: 'Cod. Material', colNombre: 'Material', colPrecio: 'Precio Neto x Unidad', colMarca: 'Marca', colUnidadesCaja: 'Q. Unidad x Caja' },
   },
 ];
 
