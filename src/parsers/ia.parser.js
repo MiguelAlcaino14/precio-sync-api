@@ -67,21 +67,40 @@ function filasAtsv(filas, colIndices) {
 
 // ── Excel ─────────────────────────────────────────────────────────────────────
 
+// Palabras clave de precio para detectar la hoja correcta en archivos multi-hoja
+const PRECIO_KW = /precio|neto|costo|valor|lp\s*un|importe|tarifa/i;
+
 async function parsearExcelConIA(buffer, hint = null) {
   const wb = XLSX.read(buffer, { type: 'buffer' });
 
-  // Elegir la hoja con más filas (archivos con múltiples hojas, ej. hojas por fecha)
+  // Elegir la hoja que tenga columna de precio (fallback: hoja con más filas)
   let mejorHoja = wb.SheetNames[0];
   let mejorFilas = 0;
+  let hojaConPrecio = null;
+  let filasHojaConPrecio = 0;
+
   for (const nombre of wb.SheetNames.slice(0, 15)) {
-    const ref = wb.Sheets[nombre]?.['!ref'];
-    if (!ref) continue;
-    const rango = XLSX.utils.decode_range(ref);
-    const filas = rango.e.r - rango.s.r + 1;
-    if (filas > mejorFilas) { mejorFilas = filas; mejorHoja = nombre; }
+    const ws2 = wb.Sheets[nombre];
+    if (!ws2?.['!ref']) continue;
+    const rango = XLSX.utils.decode_range(ws2['!ref']);
+    const filas2 = rango.e.r - rango.s.r + 1;
+    if (filas2 > mejorFilas) { mejorFilas = filas2; mejorHoja = nombre; }
+
+    // Buscar keyword de precio en primeras 15 filas (incluyendo filas de metadata)
+    const rows2 = XLSX.utils.sheet_to_json(ws2, { header: 1, defval: '' });
+    let tienePrecio = false;
+    for (let i = 0; i < Math.min(rows2.length, 15); i++) {
+      if (rows2[i].some(c => PRECIO_KW.test(String(c)))) { tienePrecio = true; break; }
+    }
+    if (tienePrecio && filas2 > filasHojaConPrecio) {
+      filasHojaConPrecio = filas2;
+      hojaConPrecio = nombre;
+    }
   }
 
-  const ws    = wb.Sheets[mejorHoja];
+  const hojaSeleccionada    = hojaConPrecio ?? mejorHoja;
+  const hojaSeleccionadaIdx = wb.SheetNames.indexOf(hojaSeleccionada);
+  const ws    = wb.Sheets[hojaSeleccionada];
   const filas = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
 
   // 1. Detectar fila de header
@@ -131,21 +150,21 @@ ${muestra}
     }
   } catch {}
 
-  // 4. Fase 2: parseo local con columnas detectadas
+  // 4. Fase 2: parseo local con columnas detectadas (usa el índice de la hoja seleccionada)
   if (configDetectada) {
     try {
-      const productos = parsearExcel(buffer, { ...configDetectada, hoja: 0 });
+      const productos = parsearExcel(buffer, { ...configDetectada, hoja: hojaSeleccionadaIdx });
       if (productos.length > 0) {
         const sug = {};
         for (const k of KEYS_CFG) if (configDetectada[k] !== undefined) sug[k] = configDetectada[k];
-        return { productos, sugerencia: { ...sug, hoja: 0 } };
+        return { productos, sugerencia: { ...sug, hoja: hojaSeleccionadaIdx } };
       }
     } catch {}
   }
 
   // 5. Fallback: extracción IA completa
   const contenido = filasAtsv(filasUtil.slice(0, 2000), colIndices).slice(0, 50000);
-  return extraerConIA(contenido, encabezados, true, 0, hint);
+  return extraerConIA(contenido, encabezados, true, hojaSeleccionadaIdx, hint);
 }
 
 // ── PDF ───────────────────────────────────────────────────────────────────────
