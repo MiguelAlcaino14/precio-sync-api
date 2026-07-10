@@ -101,7 +101,7 @@ const ASEO = [
   },
   {
     nombre: 'FIBRO', slug: 'fibro',
-    config: { colSku: 'CODIGO', colNombre: 'DESCRIPCIÓN', colPrecio: 'L1', colMarca: 'MARCA', colBarras: 'EAN' },
+    config: { colSku: 'CODIGO', colNombre: 'DESCRIPCIÓN', colPrecio: 'L1 Neto', colMarca: 'MARCA', colBarras: 'EAN 13' },
   },
   {
     nombre: 'IMPOEX', slug: 'impoex',
@@ -143,7 +143,7 @@ const ALIMENTOS = [
   { nombre: 'COLISEO',      slug: 'coliseo',      config: { tipo: 'ia' } },
   {
     nombre: 'TRES MONTES', slug: 'tres-montes',
-    config: { colSku: 'Cod. Material', colNombre: 'Material', colPrecio: 'Precio x unidad (Fórmula)', colMarca: 'Marca' },
+    config: { colSku: 'Cod. Material', colNombre: 'Material', colPrecio: 'Precio Neto x Unidad', colMarca: 'Marca' },
   },
 ];
 

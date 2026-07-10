@@ -68,8 +68,20 @@ function filasAtsv(filas, colIndices) {
 // ── Excel ─────────────────────────────────────────────────────────────────────
 
 async function parsearExcelConIA(buffer, hint = null) {
-  const wb    = XLSX.read(buffer, { type: 'buffer' });
-  const ws    = wb.Sheets[wb.SheetNames[0]];
+  const wb = XLSX.read(buffer, { type: 'buffer' });
+
+  // Elegir la hoja con más filas (archivos con múltiples hojas, ej. hojas por fecha)
+  let mejorHoja = wb.SheetNames[0];
+  let mejorFilas = 0;
+  for (const nombre of wb.SheetNames.slice(0, 15)) {
+    const ref = wb.Sheets[nombre]?.['!ref'];
+    if (!ref) continue;
+    const rango = XLSX.utils.decode_range(ref);
+    const filas = rango.e.r - rango.s.r + 1;
+    if (filas > mejorFilas) { mejorFilas = filas; mejorHoja = nombre; }
+  }
+
+  const ws    = wb.Sheets[mejorHoja];
   const filas = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
 
   // 1. Detectar fila de header
