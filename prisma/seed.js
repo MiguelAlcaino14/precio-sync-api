@@ -27,7 +27,7 @@ const LIBRERIA = [
   },
   {
     nombre: 'Pronobel', slug: 'pronobel',
-    config: { colSku: 'Material', colNombre: 'Texto breve material', colPrecio: 'CASTILLA Y ARAGON', colMarca: 'Marca', colBarras: 'BARRAS' },
+    config: { tipo: 'ia', hint: 'El archivo puede tener dos formatos. Formato 1: columnas CODIGO (SKU), Texto breve material (nombre), FINAL NETO (precio), Marca, BARRAS. Formato 2: columnas Material (SKU), Texto breve material (nombre), CASTILLA Y ARAGON (precio), Marca. Usa siempre el precio NETO sin IVA.' },
   },
   {
     nombre: 'Teknofas', slug: 'teknofas',
@@ -112,10 +112,7 @@ const ASEO = [
     config: { colSku: 'Código', colNombre: 'Descripción', colPrecio: 'Precio', hoja: 0 },
   },
   { nombre: 'LLABRES',           slug: 'llabres',         config: { tipo: 'ia' } },
-  {
-    nombre: 'MGP', slug: 'mgp',
-    config: { colSku: 'CÓDIGO', colNombre: 'PRODUCTO', colPrecio: 'PRECIO ACTUAL', hoja: 'Productos' },
-  },
+  { nombre: 'MGP', slug: 'mgp', config: { tipo: 'ia' } },
   {
     nombre: 'NEO', slug: 'neo',
     config: { colSku: 'COD', colNombre: 'Descripción', colPrecio: 'Valor Neto' },

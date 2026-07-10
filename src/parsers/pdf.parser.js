@@ -5,7 +5,7 @@ async function parsearPDF(buffer, config) {
   const lineas = data.text.split('\n').map(l => l.trim()).filter(Boolean);
 
   const patronRaw = config.patronCodigo || '^\\d{6,7}';
-  if (!/^[\w^$.|+?*{}()[\]\\]{1,80}$/.test(patronRaw)) {
+  if (!/^[\w^$.,|+?*{}()[\]\\]{1,80}$/.test(patronRaw)) {
     throw new Error('patronCodigo inválido en config del proveedor');
   }
   const regexSku = new RegExp(patronRaw);
