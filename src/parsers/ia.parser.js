@@ -10,7 +10,7 @@ const KEYS_CFG = ['colSku','colNombre','colPrecio','colMarca','colBarras','colUn
 
 const MIME_IMAGEN = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp' };
 
-const MAX_REINTENTOS = 5;
+const MAX_REINTENTOS = 2;
 
 async function chat(messages, maxTokens) {
   for (let intento = 0; intento <= MAX_REINTENTOS; intento++) {
@@ -24,15 +24,35 @@ async function chat(messages, maxTokens) {
       return res.choices[0].message.content.trim();
     } catch (err) {
       if (intento === MAX_REINTENTOS) throw err;
+      const delayMs = (intento + 1) * 5000;
+      console.warn(`[IA] Error intento ${intento + 1}/${MAX_REINTENTOS + 1}, reintentando en ${delayMs / 1000}s: ${err.message}`);
+      await new Promise(r => setTimeout(r, delayMs));
+    }
+  }
+}
+
+// Variante de chat para lotes de imágenes: espera el reset TPM completo ante 429
+async function chatImagen(content) {
+  const MAX_INT = 4;
+  for (let intento = 0; intento <= MAX_INT; intento++) {
+    try {
+      await esperarTurno();
+      const res = await client.chat.completions.create({
+        model:      'gpt-4o-mini',
+        max_tokens: 8192,
+        messages:   [{ role: 'user', content }],
+      });
+      return res.choices[0].message.content.trim();
+    } catch (err) {
+      if (intento === MAX_INT) throw err;
       let delayMs = (intento + 1) * 5000;
       if (err.status === 429 && err.code === 'rate_limit_exceeded') {
-        // Para límites TPM (tokens/min), esperar el reset completo del sliding window
         const resetStr = err.headers?.get?.('x-ratelimit-reset-tokens') ?? '';
         const m = resetStr.match(/(?:(\d+)m)?(?:([\d.]+)s)?/);
         const resetMs = m ? ((parseInt(m[1] || '0') * 60) + parseFloat(m[2] || '0')) * 1000 : 0;
-        delayMs = Math.max(delayMs, resetMs + 2000, 65_000); // mínimo 65s para tokens TPM
+        delayMs = Math.max(resetMs + 2000, 65_000);
       }
-      console.warn(`[IA] Error intento ${intento + 1}/${MAX_REINTENTOS + 1}, reintentando en ${(delayMs / 1000).toFixed(0)}s: ${err.message.slice(0, 80)}`);
+      console.warn(`[IA] Imagen lote, reintentando en ${Math.round(delayMs / 1000)}s: ${err.message.slice(0, 60)}`);
       await new Promise(r => setTimeout(r, delayMs));
     }
   }
@@ -229,7 +249,7 @@ Devuelve ÚNICAMENTE este JSON sin texto adicional:
       },
     ];
 
-    const texto = await chat([{ role: 'user', content }], 8192);
+    const texto = await chatImagen(content);
     try {
       const arr = JSON.parse(texto.match(/\[[\s\S]*\]/)?.[0] ?? 'null');
       if (Array.isArray(arr)) todos = todos.concat(arr);

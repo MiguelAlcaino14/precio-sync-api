@@ -1,4 +1,4 @@
-const MAX_POR_DIA = parseInt(process.env.IA_MAX_CALLS_PER_DAY || '50', 10);
+const MAX_POR_DIA = parseInt(process.env.IA_MAX_CALLS_PER_DAY || '200', 10);
 const DELAY_MS    = parseInt(process.env.IA_DELAY_MS || '2000', 10);
 
 let llamadasHoy  = 0;
