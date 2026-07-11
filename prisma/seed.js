@@ -27,7 +27,7 @@ const LIBRERIA = [
   },
   {
     nombre: 'Pronobel', slug: 'pronobel',
-    config: { tipo: 'ia', hint: 'Formato A: colSku="CODIGO", colPrecio="FINAL NETO", colNombre="Texto breve material", colMarca="Marca". Formato B (Castilla y Aragón): colSku="Material", colPrecio="CASTILLA Y ARAGON", colNombre="Texto breve material", colMarca="Marca". Detecta cuál formato aplica según los encabezados presentes. Precio siempre neto sin IVA.' },
+    config: { colSku: 'CODIGO', colNombre: 'Texto breve material', colPrecio: 'FINAL NETO', colMarca: 'Marca', colBarras: 'BARRAS' },
   },
   {
     nombre: 'Teknofas', slug: 'teknofas',
@@ -102,7 +102,7 @@ const ASEO = [
   },
   {
     nombre: 'FIBRO', slug: 'fibro',
-    config: { colSku: 'CODIGO', colNombre: 'DESCRIPCIÓN', colPrecio: 'L1', colMarca: 'MARCA', colBarras: 'EAN', colUnidadesCaja: 'CAP' },
+    config: { colSku: 'CODIGO', colNombre: 'DESCRIPCIÓN', colPrecio: 'L1 Neto', colMarca: 'MARCA', colBarras: 'EAN', colUnidadesCaja: 'CAP' },
   },
   {
     nombre: 'IMPOEX', slug: 'impoex',
