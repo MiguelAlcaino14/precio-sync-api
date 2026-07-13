@@ -527,4 +527,39 @@ router.get('/:id/archivos/:archivoId', requireAdmin, async (req, res) => {
   }
 });
 
+// POST /api/proveedores/:id/reset-drive  — limpia el caché de dedup Drive para forzar reimport
+router.post('/:id/reset-drive', requireAdmin, async (req, res) => {
+  try {
+    const proveedor = await prisma.proveedor.findFirst({
+      where: { OR: [{ id: req.params.id }, { slug: req.params.id }] },
+    });
+    if (!proveedor) return res.status(404).json({ error: 'Proveedor no encontrado' });
+
+    const { count } = await prisma.archivoImportado.updateMany({
+      where:  { proveedorId: proveedor.id, driveFileId: { not: null } },
+      data:   { driveFileId: null, driveModifiedTime: null },
+    });
+
+    res.json({ reseteados: count, mensaje: 'El próximo sync de Drive reimportará los archivos de este proveedor' });
+  } catch (err) {
+    console.error('POST /proveedores/:id/reset-drive error:', err);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// POST /api/proveedores/reset-drive-todos  — limpia el caché de dedup para TODOS los proveedores
+router.post('/reset-drive-todos', requireAdmin, async (req, res) => {
+  try {
+    const { count } = await prisma.archivoImportado.updateMany({
+      where: { driveFileId: { not: null } },
+      data:  { driveFileId: null, driveModifiedTime: null },
+    });
+
+    res.json({ reseteados: count, mensaje: 'El próximo sync de Drive reimportará todos los archivos' });
+  } catch (err) {
+    console.error('POST /proveedores/reset-drive-todos error:', err);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
 module.exports = router;
