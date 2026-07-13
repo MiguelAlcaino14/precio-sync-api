@@ -1,10 +1,35 @@
 const XLSX = require('xlsx');
 
+// Normaliza: strip tildes, quita chars no-letra/dígito al inicio, trim, lowercase
+// Permite que CÓDIGO === CODIGO, DESCRIPCIÓN === DESCRIPCION, etc.
+const norm = s => String(s)
+  .normalize('NFD').replace(/[̀-ͯ]/g, '')
+  .replace(/^[^\p{L}\d]+/u, '')
+  .trim()
+  .toLowerCase();
+
 /**
  * Parser genérico para archivos Excel.
- * El comportamiento se controla por la config del proveedor en DB.
+ * Soporta múltiples formatos vía config.configs (array): prueba cada uno en orden
+ * hasta que uno funcione. Si falla con "No se encontró columna", intenta el siguiente.
  */
 function parsearExcel(buffer, config) {
+  if (Array.isArray(config.configs)) {
+    let lastError;
+    for (const cfg of config.configs) {
+      try {
+        return parsearExcelConConfig(buffer, cfg);
+      } catch (e) {
+        lastError = e;
+        if (!e.message.startsWith('No se encontró columna')) throw e;
+      }
+    }
+    throw lastError;
+  }
+  return parsearExcelConConfig(buffer, config);
+}
+
+function parsearExcelConConfig(buffer, config) {
   const wb = XLSX.read(buffer, { type: 'buffer' });
   const hojaIndex = typeof config.hoja === 'string'
     ? wb.SheetNames.indexOf(config.hoja)
@@ -12,9 +37,6 @@ function parsearExcel(buffer, config) {
   if (hojaIndex === -1) throw new Error(`No se encontró la hoja "${config.hoja}" en el Excel`);
   const ws = wb.Sheets[wb.SheetNames[hojaIndex]];
   const filas = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
-
-  // Normaliza: quita chars no-letra/dígito al inicio (ej: ´PRECIO → PRECIO), trim, lowercase
-  const norm = s => String(s).replace(/^[^\p{L}\d]+/u, '').trim().toLowerCase();
 
   // Encontrar fila de header automáticamente (case-insensitive)
   let idxHeader = -1;

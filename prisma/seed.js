@@ -27,7 +27,11 @@ const LIBRERIA = [
   },
   {
     nombre: 'Pronobel', slug: 'pronobel',
-    config: { colSku: 'CODIGO', colNombre: 'Texto breve material', colPrecio: 'FINAL NETO', colMarca: 'Marca', colBarras: 'BARRAS' },
+    config: { configs: [
+      { colSku: 'CODIGO',    colNombre: 'Texto breve material', colPrecio: 'FINAL NETO',        colMarca: 'Marca', colBarras: 'BARRAS' },
+      { colSku: 'Material',  colNombre: 'Texto breve material', colPrecio: 'CASTILLA Y ARAGON', colMarca: 'Marca', colBarras: 'BARRAS' },
+      { colSku: 'CODIGO',    colNombre: 'DESCRIPCION',          colPrecio: '$ NETO',             colBarras: 'BARRAS' },
+    ] },
   },
   {
     nombre: 'Teknofas', slug: 'teknofas',
@@ -102,7 +106,10 @@ const ASEO = [
   },
   {
     nombre: 'FIBRO', slug: 'fibro',
-    config: { colSku: 'CODIGO', colNombre: 'DESCRIPCIÓN', colPrecio: 'L1 Neto', colMarca: 'MARCA', colBarras: 'EAN', colUnidadesCaja: 'CAP' },
+    config: { configs: [
+      { colSku: 'CODIGO', colNombre: 'DESCRIPCIÓN', colPrecio: 'L1 Neto', colMarca: 'MARCA', colBarras: 'EAN', colUnidadesCaja: 'CAP' },
+      { colSku: 'CODIGO', colNombre: 'DESCRIPCIÓN', colPrecio: 'L1',      colMarca: 'MARCA', colBarras: 'EAN', colUnidadesCaja: 'CAP' },
+    ] },
   },
   {
     nombre: 'IMPOEX', slug: 'impoex',
