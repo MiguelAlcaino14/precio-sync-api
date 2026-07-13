@@ -21,7 +21,8 @@ function parsearExcel(buffer, config) {
         return parsearExcelConConfig(buffer, cfg);
       } catch (e) {
         lastError = e;
-        if (!e.message.startsWith('No se encontró columna')) throw e;
+        if (!e.message.startsWith('No se encontró columna') &&
+            !e.message.startsWith('No se encontró la hoja')) throw e;
       }
     }
     throw lastError;
@@ -87,7 +88,7 @@ function parsearExcelConConfig(buffer, config) {
       nombre:        String(f[iNombre] || '').trim(),
       marca:         iMarca  >= 0 ? String(f[iMarca]  || '').trim() : null,
       barras:        iBarras >= 0 ? String(f[iBarras] || '').trim() : null,
-      costo:         Math.round(costo),
+      costo:         Math.ceil(costo / 10) * 10,
       unidadesCaja,
       unidadesPallet,
       categoria:     unidadesCaja > 1 ? 'caja' : 'unidad',
