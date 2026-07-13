@@ -57,7 +57,11 @@ const LIBRERIA = [
   },
   {
     nombre: 'FDS', slug: 'fds',
-    config: { tipo: 'ia', hint: 'El archivo puede tener dos formatos. Formato A (multi-hoja): hojas por categoría/marca, colSku="CODIGO", colNombre="DESCRIPCION", colPrecio="Precio Final" (neto con descuento, sin IVA). Formato B (hoja única "Hoja1"): colSku="CODIGO", colNombre="DESCRIPCION", colPrecio="LISTA PRECIO" (precio neto). En ambos casos el precio es neto sin IVA.' },
+    config: { configs: [
+      { hoja: 'Hoja1', colSku: 'CODIGO', colNombre: 'DESCRIPCION', colPrecio: 'LISTA PRECIO' },
+      { hoja: 0, colSku: 'CODIGO', colNombre: 'DESCRIPCION', colPrecio: 'Precio Final' },
+      { hoja: 0, colSku: 'CODIGO', colNombre: 'DESCRIPCION', colPrecio: 'LISTA PRECIO' },
+    ] },
   },
   {
     nombre: 'IMEX', slug: 'imex',
