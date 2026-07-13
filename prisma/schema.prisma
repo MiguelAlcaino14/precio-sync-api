@@ -45,11 +45,12 @@ model Producto {
 }
 
 model PrecioCosto {
-  id         String   @id @default(cuid())
-  productoId String
-  costo      Float
-  archivoId  String?
-  createdAt  DateTime @default(now())
+  id            String   @id @default(cuid())
+  productoId    String
+  costo         Float
+  costoOriginal Float?
+  archivoId     String?
+  createdAt     DateTime @default(now())
 
   producto Producto          @relation(fields: [productoId], references: [id])
   archivo  ArchivoImportado? @relation(fields: [archivoId], references: [id])

@@ -1,0 +1,1 @@
+ALTER TABLE "PrecioCosto" ADD COLUMN "costoOriginal" DOUBLE PRECISION;

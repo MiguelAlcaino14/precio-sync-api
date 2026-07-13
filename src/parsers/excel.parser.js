@@ -51,14 +51,21 @@ function parsearExcelConConfig(buffer, config) {
 
   const headers = filas[idxHeader];
   const iSku           = headers.findIndex(h => norm(h) === norm(config.colSku));
-  const iPrecio        = headers.findIndex(h => norm(h) === norm(config.colPrecio));
   const iNombre        = headers.findIndex(h => norm(h) === norm(config.colNombre));
   const iMarca         = config.colMarca         ? headers.findIndex(h => norm(h) === norm(config.colMarca))         : -1;
   const iBarras        = config.colBarras        ? headers.findIndex(h => norm(h) === norm(config.colBarras))        : -1;
   const iUnidadesCaja  = config.colUnidadesCaja  ? headers.findIndex(h => norm(h) === norm(config.colUnidadesCaja))  : -1;
   const iUnidadesPallet = config.colUnidadesPallet ? headers.findIndex(h => norm(h) === norm(config.colUnidadesPallet)) : -1;
 
-  if (iPrecio === -1) throw new Error(`No se encontró columna "${config.colPrecio}". Headers encontrados: ${headers.filter(Boolean).join(', ')}`);
+  // colPrecio puede ser string o array (intenta en orden, ej: ['Precio Licitación', 'Precio Neto'])
+  const precioOpciones = Array.isArray(config.colPrecio) ? config.colPrecio : [config.colPrecio];
+  let iPrecio = -1;
+  for (const col of precioOpciones) {
+    const idx = headers.findIndex(h => norm(h) === norm(col));
+    if (idx !== -1) { iPrecio = idx; break; }
+  }
+
+  if (iPrecio === -1) throw new Error(`No se encontró columna "${precioOpciones.join('" / "')}". Headers encontrados: ${headers.filter(Boolean).join(', ')}`);
 
   const productos = [];
   for (let i = idxHeader + 1; i < filas.length; i++) {
