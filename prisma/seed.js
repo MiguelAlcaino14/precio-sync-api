@@ -61,9 +61,10 @@ const LIBRERIA = [
   {
     nombre: 'FDS', slug: 'fds',
     config: { configs: [
-      { hoja: 'Hoja1', colSku: 'CODIGO', colNombre: 'DESCRIPCION', colPrecio: 'LISTA PRECIO' },
-      { hoja: 0, colSku: 'CODIGO', colNombre: 'DESCRIPCION', colPrecio: 'Precio Final' },
-      { hoja: 0, colSku: 'CODIGO', colNombre: 'DESCRIPCION', colPrecio: 'LISTA PRECIO' },
+      { hoja: 0,       colSku: 'CÓDIGO',  colNombre: 'ARTÍCULO',    colPrecio: 'NETO CON DCTO', colMarca: 'MARCA' },
+      { hoja: 'Hoja1', colSku: 'CODIGO',  colNombre: 'DESCRIPCION', colPrecio: 'LISTA PRECIO' },
+      { hoja: 0,       colSku: 'CODIGO',  colNombre: 'DESCRIPCION', colPrecio: 'Precio Final' },
+      { hoja: 0,       colSku: 'CODIGO',  colNombre: 'DESCRIPCION', colPrecio: 'LISTA PRECIO' },
     ] },
   },
   {
