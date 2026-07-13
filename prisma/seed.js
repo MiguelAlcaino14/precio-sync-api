@@ -23,7 +23,10 @@ const LIBRERIA = [
   { nombre: 'Devoto', slug: 'devoto', config: { tipo: 'ia', hint: 'El archivo tiene varias hojas; la hoja con precios tiene nombre de fecha (ej: "JUEVES 02-04"). En esa hoja la primera fila es un título ("LISTA DE PRECIOS...") y la segunda fila tiene los encabezados: BARRAS, CÓDIGO, DESCRIPCIÓN, ÍTEM, PRECIO. colSku="CÓDIGO", colNombre="DESCRIPCIÓN", colPrecio="PRECIO". Ignorar hojas de stock (tienen columnas "En stock", "Picking", "Disponible" pero sin precio).' } },
   {
     nombre: 'Libesa', slug: 'libesa',
-    config: { tipo: 'ia', hint: 'Puede tener dos formatos. Formato 1 (normal): colSku="Código", colNombre="Descripcion", colPrecio="Precio". Formato 2 (licitaciones): colSku es la columna con códigos alfanuméricos cortos (ej: 9031-K, 27241-8), colNombre="Descripción", colPrecio="Precio Neto". El precio siempre es neto sin IVA.' },
+    config: { configs: [
+      { colSku: 'Código', colNombre: 'Descripción', colPrecio: 'Precio Neto' },
+      { colSku: 'Código', colNombre: 'Descripción', colPrecio: 'Precio', hoja: 0 },
+    ] },
   },
   {
     nombre: 'Pronobel', slug: 'pronobel',
@@ -82,7 +85,7 @@ const LIBRERIA = [
 
   // Configs detalladas (xlsx con precioIncluyeIVA)
   {
-    nombre: 'Torre y Colón', slug: 'torre-colon',
+    nombre: 'TORRE', slug: 'torre-colon',
     config: {
       tipo: 'xlsx', hoja: 0,
       colSku: 'Cod.', colPrecio: 'PVC MAYORISTA',
@@ -116,12 +119,8 @@ const ASEO = [
     ] },
   },
   {
-    nombre: 'IMPOEX', slug: 'impoex',
+    nombre: 'IMPOEX (WAYS)', slug: 'impoex',
     config: { colSku: 'N° SAP', colNombre: 'DESCRIPCION', colPrecio: 'COSTO CASTILLA', colMarca: 'MARCA' },
-  },
-  {
-    nombre: 'LIBESA (Aseo)', slug: 'libesa-aseo',
-    config: { colSku: 'Código', colNombre: 'Descripción', colPrecio: 'Precio', hoja: 0 },
   },
   { nombre: 'LLABRES', slug: 'llabres', config: { tipo: 'ia', hint: 'PDF bien estructurado con columnas: SKU corto (ej: DEP1, MUH2), Descripción, "$ Neto" (precio neto sin IVA). Los precios usan coma como separador de miles (ej: "$5,621" = 5621 pesos, no 5.621). Tomar el número ignorando "$" y coma de miles.' } },
   { nombre: 'MGP', slug: 'mgp', config: { tipo: 'ia', hint: 'Lista con tres columnas de precio: "PRECIO NORMAL NETO", "POR MAYOR NETO" (desde 4 unidades), "PRECIO X CANTIDAD NETO" (desde 15+ unidades). El pie dice "VALORES NETOS SIN IVA". Usa la columna "POR MAYOR NETO". No hay SKU numérico; genera un código corto desde el nombre del producto.' } },
@@ -134,7 +133,7 @@ const ASEO = [
     config: { colSku: 'N°', colNombre: 'DESCRIPCION', colPrecio: 'VALOR' },
   },
   {
-    nombre: 'SAFE PRO', slug: 'safe-pro',
+    nombre: 'SAFE PRO (TARZIJAN Y MR. ROB)', slug: 'safe-pro',
     config: { colSku: 'Código', colNombre: 'Producto', colPrecio: 'Venta sobre 1MM', colUnidadesCaja: 'Und. por Caja' },
   },
   {
@@ -143,7 +142,7 @@ const ASEO = [
   },
   { nombre: 'VIRUTEX', slug: 'virutex', config: { tipo: 'ia', hint: 'Archivo de lista de precios Virutex (LP CONSOLIDADA). Los encabezados reales están aproximadamente en la fila 8 del archivo; las primeras filas son metadata (RAZON SOCIAL, RUT, etc.). colSku="CÓDIGO", colNombre="DESCRIPCION PRODUCTO", colMarca="MARCA", colPrecio: columna con encabezado que contiene "LP UN" seguido del mes (ej: "LP UN.   SEPT", "LP UN. JUN") — precio lista unitario neto sin IVA. Ignorar columnas de stock, caja y descuento.' } },
   {
-    nombre: 'GREEN WORLD CHILE', slug: 'green-world-chile',
+    nombre: 'GREEN WORLD CHILE (WINNEX)', slug: 'green-world-chile',
     config: { tipo: 'ia', hint: 'Presentación PowerPoint con lista de precios Winnex/Green World Chile. Cada slide puede tener productos con código, descripción y precio neto sin IVA. Extrae todos los productos visibles.' },
   },
 ];
@@ -208,6 +207,21 @@ async function main() {
       create: { nombre: p.nombre, slug: p.slug, tema: 'alimentos', descuento: 0, config: p.config, activo: true },
     });
     console.log(`  ✓ ${result.nombre} (${result.slug})`);
+  }
+
+  // ── Migración: libesa-aseo → libesa ─────────────────────────────────────────
+  const libesaAseo = await prisma.proveedor.findUnique({ where: { slug: 'libesa-aseo' } });
+  const libesa     = await prisma.proveedor.findUnique({ where: { slug: 'libesa' } });
+  if (libesaAseo && libesa) {
+    const movidos = await prisma.producto.updateMany({
+      where: { proveedorId: libesaAseo.id },
+      data:  { proveedorId: libesa.id },
+    });
+    await prisma.proveedor.update({
+      where: { slug: 'libesa-aseo' },
+      data:  { activo: false },
+    });
+    console.log(`\nMigración LIBESA: ${movidos.count} productos libesa-aseo → libesa (libesa-aseo desactivado)`);
   }
 
   // ── Regla de markup por defecto ─────────────────────────────────────────────
