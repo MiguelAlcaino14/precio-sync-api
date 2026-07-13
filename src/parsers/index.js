@@ -37,7 +37,7 @@ async function parsearArchivo(buffer, tipo, config, proveedorSlug) {
     case 'xlsx':
     case 'xls':
     case 'csv':
-      if (config?.colSku && config?.colPrecio) {
+      if ((config?.colSku && config?.colPrecio) || Array.isArray(config?.configs)) {
         return { productos: parsearExcel(buffer, config), sugerencia: null };
       }
       // Sin columnas configuradas: autodetección
