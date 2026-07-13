@@ -11,7 +11,7 @@ const LIBRERIA = [
   { nombre: 'SCAI',            slug: 'scai',         config: { tipo: 'scai' } },
 
   // PDF / IA
-  { nombre: 'Halley',   slug: 'halley',   config: { tipo: 'ia', hint: 'El encabezado dice "VALORES MAS IVA", lo que significa que los precios listados YA INCLUYEN IVA. Divide cada precio por 1.19 para obtener el precio neto. Formato de precio: "$755" → divide por 1.19 → 635 neto. No hay SKU numérico; genera un código corto desde las primeras palabras del nombre del producto.' } },
+  { nombre: 'Halley',   slug: 'halley',   driveFolderId: '1jacb2M3l4VsRr9mJBvBXaJYemjEBtO4-', config: { tipo: 'ia', hint: 'El encabezado dice "VALORES MAS IVA", lo que significa que los precios listados YA INCLUYEN IVA. Divide cada precio por 1.19 para obtener el precio neto. Formato de precio: "$755" → divide por 1.19 → 635 neto. No hay SKU numérico; genera un código corto desde las primeras palabras del nombre del producto.' } },
   { nombre: 'REM MAX',  slug: 'rem-max',  config: {} },
   { nombre: 'TECNIGOM', slug: 'tecnigom', config: { tipo: 'ia', hint: 'Catálogo en formato de bloques (no tabular). Cada producto tiene: "COD. XXXXXX" (SKU), "PRECIO: $ YYY" (precio unitario neto sin IVA), y un nombre de producto en el bloque. Extrae el SKU del campo "COD.", el precio del campo "PRECIO:", y el nombre del encabezado del bloque o línea descriptiva.' } },
 
@@ -143,6 +143,7 @@ const ASEO = [
   { nombre: 'VIRUTEX', slug: 'virutex', config: { tipo: 'ia', hint: 'Archivo de lista de precios Virutex (LP CONSOLIDADA). Los encabezados reales están aproximadamente en la fila 8 del archivo; las primeras filas son metadata (RAZON SOCIAL, RUT, etc.). colSku="CÓDIGO", colNombre="DESCRIPCION PRODUCTO", colMarca="MARCA", colPrecio: columna con encabezado que contiene "LP UN" seguido del mes (ej: "LP UN.   SEPT", "LP UN. JUN") — precio lista unitario neto sin IVA. Ignorar columnas de stock, caja y descuento.' } },
   {
     nombre: 'GREEN WORLD CHILE (WINNEX)', slug: 'green-world-chile',
+    driveFolderId: '1Zx1dbm5Xtmk4SVjQiYR_CV2Wm',
     config: { tipo: 'ia', hint: 'Presentación PowerPoint con lista de precios Winnex/Green World Chile. Cada slide puede tener productos con código, descripción y precio neto sin IVA. Extrae todos los productos visibles.' },
   },
 ];
@@ -180,8 +181,8 @@ async function main() {
   for (const p of LIBRERIA) {
     const result = await prisma.proveedor.upsert({
       where:  { slug: p.slug },
-      update: { nombre: p.nombre, tema: 'libreria', config: p.config },
-      create: { nombre: p.nombre, slug: p.slug, tema: 'libreria', descuento: 0, config: p.config, activo: true },
+      update: { nombre: p.nombre, tema: 'libreria', config: p.config, ...(p.driveFolderId !== undefined ? { driveFolderId: p.driveFolderId } : {}) },
+      create: { nombre: p.nombre, slug: p.slug, tema: 'libreria', descuento: 0, config: p.config, activo: true, driveFolderId: p.driveFolderId ?? null },
     });
     console.log(`  ✓ ${result.nombre} (${result.slug})`);
   }
@@ -191,8 +192,8 @@ async function main() {
   for (const p of ASEO) {
     const result = await prisma.proveedor.upsert({
       where:  { slug: p.slug },
-      update: { nombre: p.nombre, tema: 'aseo', config: p.config },
-      create: { nombre: p.nombre, slug: p.slug, tema: 'aseo', descuento: 0, config: p.config, activo: p.activo ?? true },
+      update: { nombre: p.nombre, tema: 'aseo', config: p.config, ...(p.driveFolderId !== undefined ? { driveFolderId: p.driveFolderId } : {}) },
+      create: { nombre: p.nombre, slug: p.slug, tema: 'aseo', descuento: 0, config: p.config, activo: p.activo ?? true, driveFolderId: p.driveFolderId ?? null },
     });
     const estado = result.activo ? '✓' : '○ (inactivo)';
     console.log(`  ${estado} ${result.nombre} (${result.slug})`);
@@ -203,8 +204,8 @@ async function main() {
   for (const p of ALIMENTOS) {
     const result = await prisma.proveedor.upsert({
       where:  { slug: p.slug },
-      update: { nombre: p.nombre, tema: 'alimentos', config: p.config },
-      create: { nombre: p.nombre, slug: p.slug, tema: 'alimentos', descuento: 0, config: p.config, activo: true },
+      update: { nombre: p.nombre, tema: 'alimentos', config: p.config, ...(p.driveFolderId !== undefined ? { driveFolderId: p.driveFolderId } : {}) },
+      create: { nombre: p.nombre, slug: p.slug, tema: 'alimentos', descuento: 0, config: p.config, activo: true, driveFolderId: p.driveFolderId ?? null },
     });
     console.log(`  ✓ ${result.nombre} (${result.slug})`);
   }
