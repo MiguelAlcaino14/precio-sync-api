@@ -144,7 +144,7 @@ const ASEO = [
   { nombre: 'VIRUTEX', slug: 'virutex', config: { tipo: 'ia', hint: 'Archivo de lista de precios Virutex (LP CONSOLIDADA). Los encabezados reales están aproximadamente en la fila 8 del archivo; las primeras filas son metadata (RAZON SOCIAL, RUT, etc.). colSku="CÓDIGO", colNombre="DESCRIPCION PRODUCTO", colMarca="MARCA", colPrecio: columna con encabezado que contiene "LP UN" seguido del mes (ej: "LP UN.   SEPT", "LP UN. JUN") — precio lista unitario neto sin IVA. Ignorar columnas de stock, caja y descuento.' } },
   {
     nombre: 'GREEN WORLD CHILE', slug: 'green-world-chile',
-    config: { tipo: 'ia' },
+    config: { tipo: 'ia', hint: 'Presentación PowerPoint con lista de precios Winnex/Green World Chile. Cada slide puede tener productos con código, descripción y precio neto sin IVA. Extrae todos los productos visibles.' },
   },
 ];
 

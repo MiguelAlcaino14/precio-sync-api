@@ -386,4 +386,4 @@ ${contenido}
   return { productos: normalizarProductos(productos), sugerencia };
 }
 
-module.exports = { parsearConIA };
+module.exports = { parsearConIA, extraerConIA };

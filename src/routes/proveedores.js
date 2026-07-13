@@ -28,8 +28,10 @@ function validarMagicBytes(buffer, mimetype) {
   if (mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') return isZip;
   if (mimetype === 'application/vnd.ms-excel.sheet.macroenabled.12')                   return isZip;
   if (mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') return isZip;
-  if (mimetype === 'application/vnd.ms-excel') return isOle;
-  if (mimetype === 'application/msword')        return isOle;
+  if (mimetype === 'application/vnd.ms-excel')         return isOle;
+  if (mimetype === 'application/msword')               return isOle;
+  if (mimetype === 'application/vnd.ms-powerpoint')    return isOle;
+  if (mimetype === 'application/vnd.openxmlformats-officedocument.presentationml.presentation') return isZip;
   if (mimetype === 'application/pdf')           return isPdf;
   if (mimetype === 'text/csv')                  return true;
   return false;
@@ -43,11 +45,13 @@ const MIME_PERMITIDOS = new Set([
   'application/pdf',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   'application/msword',
+  'application/vnd.ms-powerpoint',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
   'image/png',
   'image/jpeg',
   'image/webp',
 ]);
-const EXT_PERMITIDAS = new Set(['xlsx', 'xls', 'xlsm', 'csv', 'pdf', 'docx', 'doc', 'png', 'jpg', 'jpeg', 'webp']);
+const EXT_PERMITIDAS = new Set(['xlsx', 'xls', 'xlsm', 'csv', 'pdf', 'docx', 'doc', 'ppt', 'pptx', 'png', 'jpg', 'jpeg', 'webp']);
 
 const upload = multer({
   storage: multer.memoryStorage(),

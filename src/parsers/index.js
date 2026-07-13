@@ -1,6 +1,7 @@
 const { parsearExcel }       = require('./excel.parser');
 const { parsearPDF }         = require('./pdf.parser');
 const { parsearConIA }       = require('./ia.parser');
+const { parsearPPT }         = require('./ppt.parser');
 const { parsearEngatel }     = require('./engatel.parser');
 const { parsearCarlosGardy } = require('./carlos-gardy.parser');
 const { parsearAccoBrand }   = require('./acco-brand.parser');
@@ -48,6 +49,9 @@ async function parsearArchivo(buffer, tipo, config, proveedorSlug) {
       return await parsearConIA(buffer, tipo, config?.hint ?? null);
     case 'pdf':
       return { productos: await parsearPDF(buffer, config), sugerencia: null };
+    case 'ppt':
+    case 'pptx':
+      return await parsearPPT(buffer, config?.hint ?? null);
     default:
       if (tieneApiKey()) return await parsearConIA(buffer, tipo, config?.hint ?? null);
       throw new Error(`Tipo "${tipo}" requiere OPENAI_API_KEY para parsear`);
