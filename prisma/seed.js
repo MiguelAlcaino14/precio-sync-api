@@ -145,7 +145,7 @@ const ASEO = [
   },
   {
     nombre: 'ROMMEL', slug: 'rommel',
-    config: { colSku: 'N°', colNombre: 'DESCRIPCION', colPrecio: 'VALOR' },
+    config: { tipo: 'rommel', colSku: 'N°', colNombre: 'DESCRIPCION', colPrecio: 'VALOR' },
   },
   {
     nombre: 'SAFE PRO (TARZIJAN Y MR. ROB)', slug: 'safe-pro',
