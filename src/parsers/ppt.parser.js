@@ -9,26 +9,37 @@ function extraerTextoPPTOle(buffer) {
 
   const data   = Buffer.from(stream.content);
   const textos = [];
-  let offset   = 0;
 
-  while (offset + 8 <= data.length) {
-    const tipo = data.readUInt16LE(offset + 2);
-    const len  = data.readUInt32LE(offset + 4);
-    if (offset + 8 + len > data.length) break;
+  // Recorre records; los contenedores (recVer == 0xF) anidan los átomos de texto,
+  // así que hay que descender en ellos en vez de saltarlos por su longitud.
+  function walk(inicio, fin) {
+    let offset = inicio;
+    while (offset + 8 <= fin) {
+      const verInstance = data.readUInt16LE(offset);
+      const recVer      = verInstance & 0x0F;
+      const tipo        = data.readUInt16LE(offset + 2);
+      const len         = data.readUInt32LE(offset + 4);
+      const finRecord   = offset + 8 + len;
+      if (finRecord > fin) break;
 
-    if (tipo === 0x0FA0) {
-      // TextCharsAtom — UTF-16LE
-      const txt = data.slice(offset + 8, offset + 8 + len).toString('utf16le').replace(/\0/g, '').trim();
-      if (txt.length > 1) textos.push(txt);
-    } else if (tipo === 0x0FA8) {
-      // TextBytesAtom — Latin-1
-      const txt = data.slice(offset + 8, offset + 8 + len).toString('latin1').replace(/\0/g, '').trim();
-      if (txt.length > 1) textos.push(txt);
+      if (recVer === 0x0F) {
+        // Contenedor: descender a sus hijos
+        walk(offset + 8, finRecord);
+      } else if (tipo === 0x0FA0) {
+        // TextCharsAtom — UTF-16LE
+        const txt = data.slice(offset + 8, finRecord).toString('utf16le').replace(/\0/g, '').trim();
+        if (txt.length > 1) textos.push(txt);
+      } else if (tipo === 0x0FA8) {
+        // TextBytesAtom — Latin-1
+        const txt = data.slice(offset + 8, finRecord).toString('latin1').replace(/\0/g, '').trim();
+        if (txt.length > 1) textos.push(txt);
+      }
+
+      offset = finRecord;
     }
-
-    offset += 8 + len;
   }
 
+  walk(0, data.length);
   return textos.join('\n');
 }
 
