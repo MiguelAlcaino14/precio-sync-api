@@ -30,23 +30,38 @@ function parsearExcel(buffer, config) {
   return parsearExcelConConfig(buffer, config);
 }
 
+// Busca en las primeras 15 filas la que contiene el header con colSku. -1 si no está.
+function encontrarHeader(filas, colSku) {
+  for (let i = 0; i < Math.min(filas.length, 15); i++) {
+    if (filas[i].some(c => norm(c) === norm(colSku))) return i;
+  }
+  return -1;
+}
+
 function parsearExcelConConfig(buffer, config) {
   const wb = XLSX.read(buffer, { type: 'buffer' });
-  const hojaIndex = typeof config.hoja === 'string'
-    ? wb.SheetNames.indexOf(config.hoja)
-    : (config.hoja ?? 0);
-  if (hojaIndex === -1) throw new Error(`No se encontró la hoja "${config.hoja}" en el Excel`);
-  const ws = wb.Sheets[wb.SheetNames[hojaIndex]];
-  const filas = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
 
-  // Encontrar fila de header automáticamente (case-insensitive)
-  let idxHeader = -1;
-  for (let i = 0; i < Math.min(filas.length, 15); i++) {
-    if (filas[i].some(c => norm(c) === norm(config.colSku))) { idxHeader = i; break; }
-  }
-  if (idxHeader === -1) {
-    const primeras = filas.slice(0, 5).map(f => f.filter(Boolean).join(' | ')).join('\n');
-    throw new Error(`No se encontró columna "${config.colSku}". Primeras filas:\n${primeras}`);
+  let filas, idxHeader;
+  if (config.hoja === 'auto') {
+    // Buscar en TODAS las hojas la primera que contenga la columna colSku
+    // (útil cuando el nombre de la hoja de precios varía, ej: Devoto "JUEVES 02-04")
+    for (const name of wb.SheetNames) {
+      const f = XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, defval: '' });
+      const idx = encontrarHeader(f, config.colSku);
+      if (idx !== -1) { filas = f; idxHeader = idx; break; }
+    }
+    if (!filas) throw new Error(`No se encontró columna "${config.colSku}" en ninguna hoja del Excel`);
+  } else {
+    const hojaIndex = typeof config.hoja === 'string'
+      ? wb.SheetNames.indexOf(config.hoja)
+      : (config.hoja ?? 0);
+    if (hojaIndex === -1) throw new Error(`No se encontró la hoja "${config.hoja}" en el Excel`);
+    filas = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[hojaIndex]], { header: 1, defval: '' });
+    idxHeader = encontrarHeader(filas, config.colSku);
+    if (idxHeader === -1) {
+      const primeras = filas.slice(0, 5).map(f => f.filter(Boolean).join(' | ')).join('\n');
+      throw new Error(`No se encontró columna "${config.colSku}". Primeras filas:\n${primeras}`);
+    }
   }
 
   const headers = filas[idxHeader];

@@ -21,7 +21,12 @@ const LIBRERIA = [
     nombre: 'Demarka', slug: 'demarka',
     config: { tipo: 'ia', hint: 'Lista de precios con múltiples hojas por categoría (ej: Adetec, GlobosTe, Zebra). En cada hoja: colSku es el código alfanumérico del producto, colNombre es la descripción, colPrecio es el precio neto sin IVA. Algunos formatos tienen el precio como "0.15 (c/IVA)" — en ese caso dividir por 1.19.' },
   },
-  { nombre: 'Devoto', slug: 'devoto', config: { tipo: 'ia', hint: 'El archivo tiene varias hojas; la hoja con precios tiene nombre de fecha (ej: "JUEVES 02-04"). En esa hoja la primera fila es un título ("LISTA DE PRECIOS...") y la segunda fila tiene los encabezados: BARRAS, CÓDIGO, DESCRIPCIÓN, ÍTEM, PRECIO. colSku="CÓDIGO", colNombre="DESCRIPCIÓN", colPrecio="PRECIO". Ignorar hojas de stock (tienen columnas "En stock", "Picking", "Disponible" pero sin precio).' } },
+  {
+    nombre: 'Devoto', slug: 'devoto',
+    config: { configs: [
+      { hoja: 'auto', colSku: 'CÓDIGO', colNombre: 'DESCRIPCIÓN', colPrecio: 'PRECIO', colBarras: 'BARRAS' },
+    ], hint: 'El archivo tiene varias hojas; la hoja con precios tiene nombre de fecha (ej: "JUEVES 02-04"). En esa hoja la primera fila es un título ("LISTA DE PRECIOS...") y la segunda fila tiene los encabezados: BARRAS, CÓDIGO, DESCRIPCIÓN, ÍTEM, PRECIO. colSku="CÓDIGO", colNombre="DESCRIPCIÓN", colPrecio="PRECIO". Ignorar hojas de stock (tienen columnas "En stock", "Picking", "Disponible" pero sin precio).' },
+  },
   {
     nombre: 'Libesa', slug: 'libesa',
     config: { configs: [
