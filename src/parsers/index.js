@@ -7,6 +7,7 @@ const { parsearCarlosGardy } = require('./carlos-gardy.parser');
 const { parsearAccoBrand }   = require('./acco-brand.parser');
 const { parsearScai }        = require('./scai.parser');
 const { parsearCambiaso }    = require('./cambiaso.parser');
+const { parsearWinnex }      = require('./winnex.parser');
 const { parsearAutodetect }  = require('./autodetect.parser');
 
 const tieneApiKey = () => !!process.env.OPENAI_API_KEY;
@@ -23,6 +24,7 @@ async function parsearArchivo(buffer, tipo, config, proveedorSlug) {
   if (config?.tipo === 'acco-brand')   return { productos: parsearAccoBrand(buffer),                 sugerencia: null };
   if (config?.tipo === 'scai')         return { productos: await parsearScai(buffer, proveedorSlug), sugerencia: null };
   if (config?.tipo === 'cambiaso')     return { productos: parsearCambiaso(buffer),                  sugerencia: null };
+  if (config?.tipo === 'winnex')       return { productos: parsearWinnex(buffer),                    sugerencia: null };
 
   if (config?.tipo === 'ia') {
     // PPT/PPTX: parsearConIA no los soporta; extraer texto localmente + IA

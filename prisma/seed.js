@@ -1,6 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
 const prisma = new PrismaClient();
+const { recalcularDescuento } = require('../src/services/markup.service');
 
 // ── Proveedores librería ──────────────────────────────────────────────────────
 const LIBRERIA = [
@@ -161,7 +162,7 @@ const ASEO = [
   {
     nombre: 'GREEN WORLD CHILE (WINNEX)', slug: 'green-world-chile',
     driveFolderId: '1Zx1dbm5Xtmk4SVjQiYR_CV2Wm',
-    config: { tipo: 'ia', hint: 'Presentación PowerPoint con lista de precios Winnex/Green World Chile. Cada slide puede tener productos con código, descripción y precio neto sin IVA. Extrae todos los productos visibles.' },
+    config: { tipo: 'winnex' },
   },
 ];
 
@@ -225,6 +226,23 @@ async function main() {
       create: { nombre: p.nombre, slug: p.slug, tema: 'alimentos', descuento: 0, config: p.config, activo: true, driveFolderId: p.driveFolderId ?? null },
     });
     console.log(`  ✓ ${result.nombre} (${result.slug})`);
+  }
+
+  // ── Descuentos base sobre el costo ──────────────────────────────────────────
+  // REM MAX y HALLEY aplican un descuento de base (el resto ya lo trae incluido).
+  // Set-once: solo se aplica si el descuento sigue en 0 (nunca modificado desde el panel),
+  // así un re-seed no pisa cambios hechos a mano. Al aplicarlo, recalcula los costos
+  // de los productos ya importados (genera cambios pendientes, igual que el panel).
+  const DESCUENTOS_BASE = { 'rem-max': 20, 'halley': 5 };
+  for (const [slug, desc] of Object.entries(DESCUENTOS_BASE)) {
+    const prov = await prisma.proveedor.findUnique({ where: { slug } });
+    if (prov && (prov.descuento ?? 0) === 0) {
+      await prisma.proveedor.update({ where: { slug }, data: { descuento: desc } });
+      const recalc = await recalcularDescuento(prov.id, 0, desc);
+      console.log(`\nDescuento base ${slug}: ${desc}% aplicado (${recalc} costos recalculados)`);
+    } else if (prov) {
+      console.log(`\nDescuento base ${slug}: omitido (ya tiene ${prov.descuento}%, no se pisa)`);
+    }
   }
 
   // ── Migración: libesa-aseo → libesa ─────────────────────────────────────────

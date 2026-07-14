@@ -69,7 +69,8 @@ function extraerTextoPPTX(buffer) {
   return textos.join('\n').trim();
 }
 
-async function parsearPPT(buffer, hint = null) {
+// Extrae el texto crudo de un PPT/PPTX (OLE o ZIP) según sus magic bytes.
+function extraerTextoPPT(buffer) {
   const isOle = buffer[0] === 0xD0 && buffer[1] === 0xCF;
   const isZip = buffer[0] === 0x50 && buffer[1] === 0x4B;
 
@@ -85,9 +86,13 @@ async function parsearPPT(buffer, hint = null) {
   if (!contenido || contenido.trim().length < 10) {
     throw new Error('El archivo PPT no contiene texto extraíble');
   }
+  return contenido;
+}
 
+async function parsearPPT(buffer, hint = null) {
+  const contenido = extraerTextoPPT(buffer);
   console.log(`[PPT] Texto extraído: ${contenido.length} chars`);
   return extraerConIA(contenido, [], false, null, hint);
 }
 
-module.exports = { parsearPPT };
+module.exports = { parsearPPT, extraerTextoPPT };

@@ -4,7 +4,7 @@ const multer     = require('multer');
 const rateLimit  = require('express-rate-limit');
 const prisma     = require('../db');
 const { parsearArchivo, detectarTipo } = require('../parsers');
-const { calcularPrecioVenta }          = require('../services/markup.service');
+const { calcularPrecioVenta, recalcularDescuento } = require('../services/markup.service');
 const { construirMapas, normNombre }   = require('../services/jumpseller.service');
 const { requireAdmin } = require('../middleware/auth');
 
@@ -539,53 +539,6 @@ router.get('/:id/archivos/:archivoId', requireAdmin, async (req, res) => {
     res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
-
-async function recalcularDescuento(proveedorId, oldDescuento, newDescuento) {
-  console.log(`[recalcularDescuento] proveedorId=${proveedorId} old=${oldDescuento}% new=${newDescuento}%`);
-  const productos = await prisma.producto.findMany({
-    where: { proveedorId },
-    include: {
-      costos:      { orderBy: { createdAt: 'desc' }, take: 1 },
-      precioVenta: true,
-    },
-  });
-
-  let recalculados = 0;
-  for (const producto of productos) {
-    const ultimoCosto = producto.costos[0];
-    if (!ultimoCosto) continue;
-
-    // costoOriginal guardado, o revertir manualmente si hay descuento anterior
-    const costoOriginal = ultimoCosto.costoOriginal != null
-      ? ultimoCosto.costoOriginal
-      : (oldDescuento > 0
-          ? Math.round(ultimoCosto.costo / (1 - oldDescuento / 100))
-          : ultimoCosto.costo);
-
-    const costoNuevo = Math.round(costoOriginal * (1 - newDescuento / 100));
-    const { precio: precioSugerido } = await calcularPrecioVenta(producto.sku, costoNuevo, proveedorId);
-
-    const cambioSignificativo = !producto.precioVenta || precioSugerido !== producto.precioVenta.precio;
-    if (cambioSignificativo) {
-      await prisma.cambioPendiente.updateMany({
-        where: { productoId: producto.id, estado: 'pendiente' },
-        data:  { estado: 'reemplazado' },
-      });
-      await prisma.cambioPendiente.create({
-        data: {
-          productoId:    producto.id,
-          costoAnterior: ultimoCosto.costo,
-          costoNuevo,
-          precioActual:  producto.precioVenta?.precio ?? null,
-          precioSugerido,
-          archivoId:     ultimoCosto.archivoId,
-        },
-      });
-      recalculados++;
-    }
-  }
-  console.log(`[recalcularDescuento] completado: ${recalculados} cambios creados`);
-}
 
 // POST /api/proveedores/:id/reset-drive  — limpia el caché de dedup Drive para forzar reimport
 router.post('/:id/reset-drive', requireAdmin, async (req, res) => {
