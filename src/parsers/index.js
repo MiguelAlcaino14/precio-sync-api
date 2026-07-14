@@ -39,7 +39,15 @@ async function parsearArchivo(buffer, tipo, config, proveedorSlug) {
     case 'xls':
     case 'csv':
       if ((config?.colSku && config?.colPrecio) || Array.isArray(config?.configs)) {
-        return { productos: parsearExcel(buffer, config), sugerencia: null };
+        try {
+          return { productos: parsearExcel(buffer, config), sugerencia: null };
+        } catch (excelErr) {
+          if (config?.hint && tieneApiKey()) {
+            console.warn(`[parser] Excel falló (${excelErr.message.slice(0, 80)}), reintentando con IA hint`);
+            return await parsearConIA(buffer, tipo, config.hint);
+          }
+          throw excelErr;
+        }
       }
       // Sin columnas configuradas: autodetección
       if (!tieneApiKey()) {

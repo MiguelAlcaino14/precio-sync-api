@@ -103,7 +103,13 @@ const ASEO = [
     nombre: 'BRILLEX', slug: 'brillex',
     config: { colSku: 'Codigo Odoo', colNombre: 'DESCRIPCION', colPrecio: 'precio neto unitario' },
   },
-  { nombre: 'CHIPRO',   slug: 'chipro',   config: { tipo: 'ia', hint: 'El precio unitario está en una columna sin encabezado visible (aprox. columna 11-12). El código de producto está en la columna A.' } },
+  {
+    nombre: 'CHIPRO', slug: 'chipro',
+    config: {
+      configs: [{ colSku: 'CODIGO', colNombre: 'DESCRIPCION', colPrecio: 'Crédito' }],
+      hint: 'Lista CHIPRO con múltiples filas de encabezado. Fila principal: DESCRIPCION, CODIGO. Los precios aparecen en columnas "Crédito" y "Prepago (retira)" bajo la sección "(Todas las regiones)". Usar columna "Crédito" como precio neto sin IVA. SKU=CODIGO, nombre=DESCRIPCION.',
+    },
+  },
   {
     nombre: 'DURANDIN', slug: 'durandin',
     config: { colSku: 'Código\r\nPT', colNombre: 'Descripción', colPrecio: 'Precio de Facturación Lista Actual' },
@@ -141,7 +147,15 @@ const ASEO = [
     nombre: 'SAN REMO', slug: 'san-remo',
     config: { colSku: 'Cod. Prov.', colNombre: 'Descripción', colPrecio: 'PRECIO  NETO UNIDAD', colMarca: 'Linea' },
   },
-  { nombre: 'VIRUTEX', slug: 'virutex', config: { tipo: 'ia', hint: 'Archivo de lista de precios Virutex (LP CONSOLIDADA). Los encabezados reales están aproximadamente en la fila 8 del archivo; las primeras filas son metadata (RAZON SOCIAL, RUT, etc.). colSku="CÓDIGO", colNombre="DESCRIPCION PRODUCTO", colMarca="MARCA", colPrecio: columna con encabezado que contiene "LP UN" seguido del mes (ej: "LP UN.   SEPT", "LP UN. JUN") — precio lista unitario neto sin IVA. Ignorar columnas de stock, caja y descuento.' } },
+  {
+    nombre: 'VIRUTEX', slug: 'virutex',
+    config: {
+      configs: [
+        { colSku: 'SKU Virutex', colNombre: 'Descripción Virutex', colPrecio: 'Precio CM', colMarca: 'Marca' },
+      ],
+      hint: 'Archivo LP CONSOLIDADA Virutex. Encabezados en fila ~8 (primeras filas son metadata). colSku="CÓDIGO", colNombre="DESCRIPCION PRODUCTO", colMarca="MARCA", colPrecio: columna cuyo encabezado contiene "LP UN" seguido del mes (ej: "LP UN. SEPT", "LP UN. JUN") — precio lista unitario neto sin IVA. Ignorar columnas de stock, caja y descuento.',
+    },
+  },
   {
     nombre: 'GREEN WORLD CHILE (WINNEX)', slug: 'green-world-chile',
     driveFolderId: '1Zx1dbm5Xtmk4SVjQiYR_CV2Wm',
