@@ -31,9 +31,9 @@ const LIBRERIA = [
   {
     nombre: 'Pronobel', slug: 'pronobel',
     config: { configs: [
-      { colSku: 'CODIGO',   colNombre: 'Texto breve material', colPrecio: 'FINAL NETO',        colMarca: 'Marca', colBarras: 'BARRAS', colUnidadesCaja: 'SUB', colUnidadesPallet: 'EMB' },
-      { colSku: 'Material', colNombre: 'Texto breve material', colPrecio: 'CASTILLA Y ARAGON', colMarca: 'Marca', colBarras: 'BARRAS', colUnidadesCaja: 'SUB', colUnidadesPallet: 'EMB' },
-      { colSku: 'CODIGO',   colNombre: 'DESCRIPCION',          colPrecio: '$ NETO',             colBarras: 'BARRAS', colUnidadesCaja: 'SUB', colUnidadesPallet: 'EMB' },
+      { colSku: 'CODIGO',   colNombre: 'Texto breve material', colPrecio: 'FINAL NETO',                              colMarca: 'Marca', colBarras: 'BARRAS', colUnidadesCaja: 'SUB', colUnidadesPallet: 'EMB' },
+      { colSku: 'Material', colNombre: 'Texto breve material', colPrecio: ['CASTILLA Y ARAGON', 'CASTILLA ARAGON'],  colMarca: 'Marca', colBarras: 'BARRAS', colUnidadesCaja: 'SUB', colUnidadesPallet: 'EMB' },
+      { colSku: 'CODIGO',   colNombre: 'DESCRIPCION',          colPrecio: '$ NETO',                                 colBarras: 'BARRAS', colUnidadesCaja: 'SUB', colUnidadesPallet: 'EMB' },
     ] },
   },
   {
