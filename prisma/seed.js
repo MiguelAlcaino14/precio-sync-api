@@ -24,8 +24,9 @@ const LIBRERIA = [
   {
     nombre: 'Libesa', slug: 'libesa',
     config: { configs: [
-      { colSku: 'Código', colNombre: 'Descripción', colPrecio: 'Precio Neto' },
-      { colSku: 'Código', colNombre: 'Descripción', colPrecio: 'Precio', hoja: 0 },
+      { colSku: 'Descripción', colNombre: 'Lote Venta',   colPrecio: ['NUEVO PRECIO LICITACION', 'P. LICITACIÓN'], colMarca: 'Marca' },
+      { colSku: 'Código',      colNombre: 'Descripción',  colPrecio: 'Precio Neto' },
+      { colSku: 'Código',      colNombre: 'Descripción',  colPrecio: 'Precio', hoja: 0 },
     ] },
   },
   {
