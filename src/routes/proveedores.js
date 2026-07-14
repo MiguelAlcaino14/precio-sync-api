@@ -398,6 +398,7 @@ async function procesarArchivo(archivoId, proveedor, buffer, tipo, nombreArchivo
     let matcheados     = 0;
     let sinMatch       = 0;
     let cambiosCreados = 0;
+    const sinMatchNombres = [];  // Paso 0: diagnóstico de productos que no cruzan con JumpSeller
 
     for (const prod of productos) {
       // Si el mapa JS está disponible, omitir productos que no existen en JumpSeller
@@ -406,7 +407,7 @@ async function procesarArchivo(archivoId, proveedor, buffer, tipo, nombreArchivo
                      (prod.nombre && mapaJS.mapaNombre[normNombre(prod.nombre)]);
         if (!enJS) {
           sinMatch++;
-          console.log(`[procesarArchivo] omitido sku=${prod.sku} (no existe en JumpSeller)`);
+          sinMatchNombres.push(`${prod.sku} | ${prod.nombre || '(sin nombre)'}`);
           continue;
         }
         matcheados++;
@@ -479,6 +480,13 @@ async function procesarArchivo(archivoId, proveedor, buffer, tipo, nombreArchivo
 
         cambiosCreados++;
       }
+    }
+
+    // Paso 0: dejar visible qué productos no cruzaron con JumpSeller (diagnóstico de match)
+    if (sinMatchNombres.length) {
+      const pct = productos.length ? Math.round((sinMatch / productos.length) * 100) : 0;
+      console.log(`[procesarArchivo] SIN MATCH ${proveedor.slug} "${nombreArchivo}": ${sinMatch}/${productos.length} (${pct}%)`);
+      console.log(`[procesarArchivo] SIN MATCH nombres:\n  ${sinMatchNombres.join('\n  ')}`);
     }
 
     const updateData = {
