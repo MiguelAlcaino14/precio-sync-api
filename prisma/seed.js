@@ -24,10 +24,10 @@ const LIBRERIA = [
   {
     nombre: 'Libesa', slug: 'libesa',
     config: { configs: [
-      { colSku: 'Descripción', colNombre: 'Lote Venta',   colPrecio: ['NUEVO PRECIO LICITACION', 'P. LICITACIÓN', 'P. NETO ANTERIOR'], colMarca: 'Marca' },
+      { colSku: 'Descripción', colNombre: 'Lote Venta',   colPrecio: ['NUEVO PRECIO LICITACION', 'P. LICITACIÓN', 'P. NETO ANTERIOR', 'Precio Neto'], colMarca: 'Marca' },
       { colSku: 'Código',      colNombre: 'Descripción',  colPrecio: 'Precio Neto' },
       { colSku: 'Código',      colNombre: 'Descripción',  colPrecio: 'Precio', hoja: 0 },
-    ] },
+    ], hint: 'Lista de precios Libesa. Puede ser formato licitaciones (SKU en columna "Descripción", nombre en "Lote Venta") o formato aseo (SKU en "Código", nombre en "Descripción"). Precio neto sin IVA, en CLP. Ignorar filas con errores (#ERROR!) o precio 0. Extraer solo filas con SKU, nombre y precio válidos.' },
   },
   {
     nombre: 'Pronobel', slug: 'pronobel',
@@ -90,7 +90,7 @@ const LIBRERIA = [
     nombre: 'TORRE', slug: 'torre-colon',
     config: {
       tipo: 'xlsx', hoja: 0,
-      colSku: 'Cod.', colPrecio: 'PVC MAYORISTA',
+      colSku: 'Cod.', colPrecio: ['PVC MAYORISTA', 'PRECIO MAYORISTA'],
       colNombre: 'Descripción Material', colMarca: 'Sector',
       colUnidadesCaja: 'Uni Caja', colUnidadesPallet: 'Uni Pallet',
       precioIncluyeIVA: false,

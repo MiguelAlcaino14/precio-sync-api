@@ -25,6 +25,10 @@ async function parsearArchivo(buffer, tipo, config, proveedorSlug) {
   if (config?.tipo === 'cambiaso')     return { productos: parsearCambiaso(buffer),                  sugerencia: null };
 
   if (config?.tipo === 'ia') {
+    // PPT/PPTX: parsearConIA no los soporta; extraer texto localmente + IA
+    if (['ppt', 'pptx'].includes(tipo.toLowerCase())) {
+      return await parsearPPT(buffer, config?.hint ?? null);
+    }
     if (tieneApiKey()) return await parsearConIA(buffer, tipo, config?.hint ?? null);
     // Sin API key: autodetección para Excel, PDF falla
     if (['xlsx', 'xls', 'csv'].includes(tipo.toLowerCase())) {
@@ -40,7 +44,12 @@ async function parsearArchivo(buffer, tipo, config, proveedorSlug) {
     case 'csv':
       if ((config?.colSku && config?.colPrecio) || Array.isArray(config?.configs)) {
         try {
-          return { productos: parsearExcel(buffer, config), sugerencia: null };
+          const productos = parsearExcel(buffer, config);
+          if (productos.length === 0 && config?.hint && tieneApiKey()) {
+            console.warn(`[parser] Excel retornó 0 productos, reintentando con IA hint`);
+            return await parsearConIA(buffer, tipo, config.hint);
+          }
+          return { productos, sugerencia: null };
         } catch (excelErr) {
           if (config?.hint && tieneApiKey()) {
             console.warn(`[parser] Excel falló (${excelErr.message.slice(0, 80)}), reintentando con IA hint`);
