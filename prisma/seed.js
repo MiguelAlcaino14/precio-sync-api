@@ -7,13 +7,13 @@ const LIBRERIA = [
   // Parsers especiales
   { nombre: 'ACCO Brand',      slug: 'acco-brand',   config: { tipo: 'acco-brand' } },
   { nombre: 'Carlos Gardy',    slug: 'carlos-gardy', config: { tipo: 'ia', hint: 'Listado con dos columnas de precio: "PRECIO" (precio lista) y "Precio con Descuento" (precio real). Usa siempre la columna "Precio con Descuento". Los precios son netos sin IVA. Formato: "$320" → 320 (ignorar $). No hay SKU numérico; genera un código corto desde las primeras palabras del nombre del producto.' } },
-  { nombre: 'ENGATEL',         slug: 'engatel',      config: { tipo: 'engatel' } },
-  { nombre: 'SCAI',            slug: 'scai',         config: { tipo: 'scai' } },
+  { nombre: 'ENGATEL',         slug: 'engatel',      driveFolderId: '1fzubbLPBgD0z1DHJOKR27_AOq3ggqJVV', config: { tipo: 'engatel' } },
+  { nombre: 'SCAI',            slug: 'scai',         driveFolderId: '1ta5map_1F_h_HRj9Jml_5DGPJXuLfFZ4', config: { tipo: 'scai' } },
 
   // PDF / IA
   { nombre: 'Halley',   slug: 'halley',   driveFolderId: '1jacb2M3l4VsRr9mJBvBXaJYemjEBtO4-', config: { tipo: 'ia', hint: 'El encabezado dice "VALORES MAS IVA", lo que significa que los precios listados YA INCLUYEN IVA. Divide cada precio por 1.19 para obtener el precio neto. Formato de precio: "$755" → divide por 1.19 → 635 neto. No hay SKU numérico; genera un código corto desde las primeras palabras del nombre del producto.' } },
   { nombre: 'REM MAX',  slug: 'rem-max',  config: {} },
-  { nombre: 'TECNIGOM', slug: 'tecnigom', config: { tipo: 'ia', hint: 'Catálogo en formato de bloques (no tabular). Cada producto tiene: "COD. XXXXXX" (SKU), "PRECIO: $ YYY" (precio unitario neto sin IVA), y un nombre de producto en el bloque. Extrae el SKU del campo "COD.", el precio del campo "PRECIO:", y el nombre del encabezado del bloque o línea descriptiva.' } },
+  { nombre: 'TECNIGOM', slug: 'tecnigom', driveFolderId: '1UL9yv58kaTEmbUubH4bI3fz9i4W3pYOl', config: { tipo: 'ia', hint: 'Catálogo en formato de bloques (no tabular). Cada producto tiene: "COD. XXXXXX" (SKU), "PRECIO: $ YYY" (precio unitario neto sin IVA), y un nombre de producto en el bloque. Extrae el SKU del campo "COD.", el precio del campo "PRECIO:", y el nombre del encabezado del bloque o línea descriptiva.' } },
 
   // IA (multi-hoja o estructura variable)
   {
@@ -78,6 +78,7 @@ const LIBRERIA = [
   },
   {
     nombre: 'Offione', slug: 'offione',
+    driveFolderId: '1-TyhEGfBhwaAxqbVeAXPK_NSKhGdgMg3',
     config: { colSku: 'CODIGO', colNombre: 'DESCRIPCION', colPrecio: 'Costo Neto', hoja: 'LISTA GRAL' },
   },
   {
@@ -130,7 +131,7 @@ const ASEO = [
     nombre: 'IMPOEX (WAYS)', slug: 'impoex',
     config: { colSku: 'N° SAP', colNombre: 'DESCRIPCION', colPrecio: 'COSTO CASTILLA', colMarca: 'MARCA' },
   },
-  { nombre: 'LLABRES', slug: 'llabres', config: { tipo: 'ia', hint: 'PDF bien estructurado con columnas: SKU corto (ej: DEP1, MUH2), Descripción, "$ Neto" (precio neto sin IVA). Los precios usan coma como separador de miles (ej: "$5,621" = 5621 pesos, no 5.621). Tomar el número ignorando "$" y coma de miles.' } },
+  { nombre: 'LLABRES', slug: 'llabres', driveFolderId: '1hDh8hkdJ8IsDffBluWGrghsSONp_RpiH', config: { tipo: 'ia', hint: 'PDF bien estructurado con columnas: SKU corto (ej: DEP1, MUH2), Descripción, "$ Neto" (precio neto sin IVA). Los precios usan coma como separador de miles (ej: "$5,621" = 5621 pesos, no 5.621). Tomar el número ignorando "$" y coma de miles.' } },
   { nombre: 'MGP', slug: 'mgp', config: { tipo: 'ia', hint: 'Lista con tres columnas de precio: "PRECIO NORMAL NETO", "POR MAYOR NETO" (desde 4 unidades), "PRECIO X CANTIDAD NETO" (desde 15+ unidades). El pie dice "VALORES NETOS SIN IVA". Usa la columna "POR MAYOR NETO". No hay SKU numérico; genera un código corto desde el nombre del producto.' } },
   {
     nombre: 'NEO', slug: 'neo',
