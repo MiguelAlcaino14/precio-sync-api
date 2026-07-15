@@ -30,9 +30,9 @@ const LIBRERIA = [
   {
     nombre: 'Libesa', slug: 'libesa',
     config: { configs: [
-      { colSku: 'Descripción', colNombre: 'Lote Venta',   colPrecio: ['NUEVO PRECIO LICITACION', 'P. LICITACIÓN', 'P. NETO ANTERIOR', 'Precio Neto'], colMarca: 'Marca' },
-      { colSku: 'Código',      colNombre: 'Descripción',  colPrecio: 'Precio Neto' },
-      { colSku: 'Código',      colNombre: 'Descripción',  colPrecio: 'Precio', hoja: 0 },
+      { colSku: 'Descripción', colNombre: 'Lote Venta',   colPrecio: ['NUEVO PRECIO LICITACION', 'P. LICITACIÓN', 'P. NETO ANTERIOR', 'Precio Neto'], colMarca: 'Marca', colBarras: 'Cod barra' },
+      { colSku: 'Código',      colNombre: 'Descripción',  colPrecio: 'Precio Neto', colBarras: 'Cod barra' },
+      { colSku: 'Código',      colNombre: 'Descripción',  colPrecio: 'Precio', hoja: 0, colBarras: 'Cod barra' },
     ], hint: 'Lista de precios Libesa. Puede ser formato licitaciones (SKU en columna "Descripción", nombre en "Lote Venta") o formato aseo (SKU en "Código", nombre en "Descripción"). Precio neto sin IVA, en CLP. Ignorar filas con errores (#ERROR!) o precio 0. Extraer solo filas con SKU, nombre y precio válidos.' },
   },
   {
@@ -59,7 +59,7 @@ const LIBRERIA = [
   },
   {
     nombre: 'Artel', slug: 'artel',
-    config: { colSku: 'Material', colNombre: 'Descripcion', colPrecio: 'Precio', colMarca: 'Categoria' },
+    config: { colSku: 'Material', colNombre: 'Descripcion', colPrecio: 'Precio', colMarca: 'Categoria', colBarras: 'Codigo Barra' },
   },
   {
     nombre: 'Diazol', slug: 'diazol',
@@ -76,7 +76,7 @@ const LIBRERIA = [
   },
   {
     nombre: 'IMEX', slug: 'imex',
-    config: { colSku: 'CODIGO NUEVO', colNombre: 'DESCRIPCIÓN', colPrecio: 'LPGOB c/Dcto. TO' },
+    config: { colSku: 'CODIGO NUEVO', colNombre: 'DESCRIPCIÓN', colPrecio: 'LPGOB c/Dcto. TO', colBarras: 'CODIGO BARRAS' },
   },
   {
     nombre: 'JM Azcorbebeitia', slug: 'jm-azcorbebeitia',
@@ -109,7 +109,7 @@ const LIBRERIA = [
 const ASEO = [
   {
     nombre: 'BRILLEX', slug: 'brillex',
-    config: { colSku: 'Codigo Odoo', colNombre: 'DESCRIPCION', colPrecio: 'precio neto unitario' },
+    config: { colSku: 'Codigo Odoo', colNombre: 'DESCRIPCION', colPrecio: 'precio neto unitario', colBarras: 'Codigo EAN' },
   },
   {
     nombre: 'CHIPRO', slug: 'chipro',
@@ -120,7 +120,7 @@ const ASEO = [
   },
   {
     nombre: 'DURANDIN', slug: 'durandin',
-    config: { colSku: 'Código\r\nPT', colNombre: 'Descripción', colPrecio: 'Precio de Facturación Lista Actual' },
+    config: { colSku: 'Código\r\nPT', colNombre: 'Descripción', colPrecio: 'Precio de Facturación Lista Actual', colBarras: 'Código\r\nEAN 13' },
   },
   {
     nombre: 'ELITE', slug: 'elite',
@@ -281,6 +281,10 @@ async function main() {
   console.log(`\nSeed completado: ${LIBRERIA.length} librería + ${ASEO.length} aseo + ${ALIMENTOS.length} alimentos + 1 regla markup`);
 }
 
-main()
-  .catch(console.error)
-  .finally(() => prisma.$disconnect());
+module.exports = { LIBRERIA, ASEO, ALIMENTOS };
+
+if (require.main === module) {
+  main()
+    .catch(console.error)
+    .finally(() => prisma.$disconnect());
+}
