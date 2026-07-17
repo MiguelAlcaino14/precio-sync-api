@@ -39,6 +39,7 @@ router.post('/', async (req, res) => {
       sku:         c.producto.sku,
       nombre:      c.producto.nombre,
       precioVenta: precioFinal,
+      proveedorId: c.producto.proveedorId,
       ...(oferta ? { ofertaAplicada: oferta.nombre, descuentoPct: oferta.descuentoPct } : {}),
     });
   }

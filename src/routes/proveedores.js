@@ -7,6 +7,7 @@ const { parsearArchivo, detectarTipo } = require('../parsers');
 const { calcularPrecioVenta, recalcularDescuento } = require('../services/markup.service');
 const { construirMapas, normNombre }   = require('../services/jumpseller.service');
 const { requireAdmin } = require('../middleware/auth');
+const { normSku, guardarMapeo } = require('../services/mapeo.service');
 
 const router  = express.Router();
 
@@ -403,14 +404,30 @@ async function procesarArchivo(archivoId, proveedor, buffer, tipo, nombreArchivo
     for (const prod of productos) {
       // Si el mapa JS está disponible, omitir productos que no existen en JumpSeller
       if (mapaJS) {
-        const enJS = mapaJS.mapaSku[prod.sku] ||
-                     (prod.nombre && mapaJS.mapaNombre[normNombre(prod.nombre)]);
+        const skuNorm  = normSku(prod.sku);
+        let   enJS     = mapaJS.mapaSku[prod.sku] ?? null;
+        let   simil    = enJS ? 1.0 : null;
+
+        if (!enJS && prod.nombre) {
+          const hit = mapaJS.mapaNombre[normNombre(prod.nombre)];
+          if (hit) { enJS = hit; simil = 0.8; }
+        }
+
         if (!enJS) {
+          // Guardar en MapeoSku como pendiente para revisión manual
           sinMatch++;
           sinMatchNombres.push(`${prod.sku} | ${prod.nombre || '(sin nombre)'}`);
+          if (prod.sku) {
+            await guardarMapeo(proveedor.id, prod.sku, null, 'pendiente', null).catch(() => {});
+          }
           continue;
         }
+
+        // Match encontrado → guardar/actualizar en MapeoSku como confirmado
         matcheados++;
+        if (prod.sku && enJS.productId) {
+          await guardarMapeo(proveedor.id, prod.sku, enJS.productId, 'confirmado', simil).catch(() => {});
+        }
       }
 
       // Buscar o crear producto en DB interna

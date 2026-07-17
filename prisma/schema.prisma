@@ -23,6 +23,7 @@ model Proveedor {
   archivos  ArchivoImportado[]
   reglas    ReglaMarkup[]
   ofertas   Oferta[]
+  mapeos    MapeoSku[]
 }
 
 model Producto {
@@ -161,6 +162,21 @@ model Notificacion {
   leida     Boolean  @default(false)
   datos     Json?
   createdAt DateTime @default(now())
+}
+
+model MapeoSku {
+  id                  String   @id @default(cuid())
+  proveedorId         String
+  skuProveedor        String
+  jumpsellerProductId Int?
+  estado              String   @default("pendiente")
+  similitud           Float?
+  ultimaVezVisto      DateTime @default(now())
+  creadoEn            DateTime @default(now())
+
+  proveedor Proveedor @relation(fields: [proveedorId], references: [id])
+
+  @@unique([proveedorId, skuProveedor])
 }
 
 enum Rol {

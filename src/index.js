@@ -24,6 +24,7 @@ const usuariosRouter        = require('./routes/usuarios');
 const notificacionesRouter  = require('./routes/notificaciones');
 const syncRouter            = require('./routes/sync');
 const ofertasRouter         = require('./routes/ofertas');
+const mapeoRoutes           = require('./routes/mapeo');
 
 const app        = express();
 const PORT       = process.env.PORT || 3001;
@@ -63,6 +64,7 @@ app.use('/api/usuarios',       usuariosRouter);
 app.use('/api/notificaciones', notificacionesRouter);
 app.use('/api/sync',          syncRouter);
 app.use('/api/ofertas',       ofertasRouter);
+app.use('/api/mapeo',         mapeoRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err);

@@ -1,4 +1,5 @@
 const prisma = require('../db');
+const { buscarMapeo, normSku } = require('./mapeo.service');
 
 const BASE  = 'https://api.jumpseller.com/v1';
 const DELAY = 600; // JumpSeller rate limit: 2 req/seg (60/min)
@@ -83,8 +84,18 @@ async function publicarPrecios(cambios) {
   const resultados = [];
 
   for (const c of cambios) {
-    let info           = mapaSku[c.sku] ?? null;
+    let info           = null;
     let matchPorNombre = false;
+
+    // Consultar MapeoSku primero
+    if (c.proveedorId) {
+      const mapeo = await buscarMapeo(c.proveedorId, normSku(c.sku));
+      if (mapeo && mapeo.estado === 'confirmado' && mapeo.jumpsellerProductId) {
+        info = { productId: mapeo.jumpsellerProductId };
+      }
+    }
+
+    if (!info) info = mapaSku[c.sku] ?? null;
 
     if (!info && c.nombre) {
       info = mapaNombre[normNombre(c.nombre)] ?? null;
