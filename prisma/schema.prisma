@@ -168,6 +168,7 @@ model MapeoSku {
   id                  String   @id @default(cuid())
   proveedorId         String
   skuProveedor        String
+  nombreProducto      String?
   jumpsellerProductId Int?
   estado              String   @default("pendiente")
   similitud           Float?

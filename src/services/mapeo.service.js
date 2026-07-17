@@ -8,12 +8,13 @@ async function buscarMapeo(proveedorId, skuProveedor) {
   });
 }
 
-async function guardarMapeo(proveedorId, skuProveedor, jumpsellerProductId, estado, similitud) {
-  const sku = normSku(skuProveedor);
+async function guardarMapeo(proveedorId, skuProveedor, jumpsellerProductId, estado, similitud, nombreProducto) {
+  const sku    = normSku(skuProveedor);
+  const nombre = nombreProducto ? String(nombreProducto).slice(0, 500) : undefined;
   return prisma.mapeoSku.upsert({
     where:  { proveedorId_skuProveedor: { proveedorId, skuProveedor: sku } },
-    update: { jumpsellerProductId, estado, similitud, ultimaVezVisto: new Date() },
-    create: { proveedorId, skuProveedor: sku, jumpsellerProductId, estado, similitud },
+    update: { jumpsellerProductId, estado, similitud, ultimaVezVisto: new Date(), ...(nombre ? { nombreProducto: nombre } : {}) },
+    create: { proveedorId, skuProveedor: sku, jumpsellerProductId, estado, similitud, nombreProducto: nombre ?? null },
   });
 }
 
