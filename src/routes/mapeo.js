@@ -103,16 +103,18 @@ router.get('/stats', async (req, res) => {
 router.post('/:id/confirmar', async (req, res) => {
   try {
     const { id } = req.params;
-    const { jumpsellerProductId } = req.body;
+    const { jumpsellerProductId, nombreProducto } = req.body;
 
     if (!jumpsellerProductId || typeof jumpsellerProductId !== 'number' || jumpsellerProductId <= 0 || !Number.isInteger(jumpsellerProductId)) {
       return res.status(400).json({ error: 'jumpsellerProductId debe ser un número entero positivo' });
     }
 
-    const mapeo = await prisma.mapeoSku.update({
-      where: { id },
-      data:  { estado: 'confirmado', jumpsellerProductId, similitud: null },
-    });
+    const data = { estado: 'confirmado', jumpsellerProductId, similitud: null };
+    if (nombreProducto && typeof nombreProducto === 'string') {
+      data.nombreProducto = nombreProducto.trim().slice(0, 500);
+    }
+
+    const mapeo = await prisma.mapeoSku.update({ where: { id }, data });
 
     res.json(mapeo);
   } catch (err) {
