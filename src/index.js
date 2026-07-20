@@ -13,6 +13,7 @@ for (const key of requiredEnvs) {
   }
 }
 
+const prisma                = require('./db');
 const authMiddleware        = require('./middleware/auth');
 const authRouter            = require('./routes/auth');
 const proveedoresRouter     = require('./routes/proveedores');
@@ -51,6 +52,22 @@ const authLimiter = rateLimit({
 // Rutas públicas
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 app.use('/api/auth', authLimiter, authRouter);
+app.get('/api/mapeo/stats', async (req, res) => {
+  try {
+    const [total, confirmados, pendientes, ignorados, ambiguos, pendientesSinMatch] = await Promise.all([
+      prisma.mapeoSku.count(),
+      prisma.mapeoSku.count({ where: { estado: 'confirmado' } }),
+      prisma.mapeoSku.count({ where: { estado: 'pendiente'  } }),
+      prisma.mapeoSku.count({ where: { estado: 'ignorado'   } }),
+      prisma.mapeoSku.count({ where: { estado: 'ambiguo'    } }),
+      prisma.mapeoSku.count({ where: { estado: 'pendiente', similitud: null, jumpsellerProductId: null } }),
+    ]);
+    res.json({ total, confirmados, pendientes, ignorados, ambiguos, pendientesSinMatch });
+  } catch (err) {
+    console.error('GET /mapeo/stats error:', err);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
 
 // Todas las rutas siguientes requieren auth
 app.use(authMiddleware);
