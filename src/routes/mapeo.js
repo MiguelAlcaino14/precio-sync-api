@@ -101,14 +101,15 @@ router.get('/buscar-jumpseller', async (req, res) => {
 // GET /api/mapeo/stats
 router.get('/stats', async (req, res) => {
   try {
-    const [total, confirmados, pendientes, ignorados, ambiguos] = await Promise.all([
+    const [total, confirmados, pendientes, ignorados, ambiguos, pendientesSinMatch] = await Promise.all([
       prisma.mapeoSku.count(),
       prisma.mapeoSku.count({ where: { estado: 'confirmado' } }),
       prisma.mapeoSku.count({ where: { estado: 'pendiente'  } }),
       prisma.mapeoSku.count({ where: { estado: 'ignorado'   } }),
       prisma.mapeoSku.count({ where: { estado: 'ambiguo'    } }),
+      prisma.mapeoSku.count({ where: { estado: 'pendiente', similitud: null, jumpsellerProductId: null } }),
     ]);
-    res.json({ total, confirmados, pendientes, ignorados, ambiguos });
+    res.json({ total, confirmados, pendientes, ignorados, ambiguos, pendientesSinMatch });
   } catch (err) {
     console.error('GET /mapeo/stats error:', err);
     res.status(500).json({ error: 'Error interno del servidor' });
