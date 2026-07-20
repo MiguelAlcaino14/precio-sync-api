@@ -68,10 +68,20 @@ const upload = multer({
 
 // GET /api/proveedores
 // ?todos=1 → devuelve activos e inactivos (solo admin)
+// ?q=texto → filtra por nombre del proveedor o nombre de producto
 router.get('/', async (req, res) => {
   try {
     const mostrarTodos = req.query.todos === '1' && req.user?.rol === 'admin';
-    const where = mostrarTodos ? {} : { activo: true };
+    const q = req.query.q?.trim();
+    const base = mostrarTodos ? {} : { activo: true };
+
+    const where = q ? {
+      ...base,
+      OR: [
+        { nombre: { contains: q, mode: 'insensitive' } },
+        { productos: { some: { nombre: { contains: q, mode: 'insensitive' } } } },
+      ],
+    } : base;
 
     const proveedores = await prisma.proveedor.findMany({
       where,
