@@ -52,6 +52,17 @@ router.get('/items', async (req, res) => {
       prisma.mapeoSku.findMany({ where, skip, take: limit, orderBy: { creadoEn: 'desc' }, include: INCLUDE_PROVEEDOR }),
     ]);
 
+    // Enriquecer con marca del Producto local
+    if (items.length) {
+      const productos = await prisma.producto.findMany({
+        where: { OR: items.map(it => ({ proveedorId: it.proveedorId, sku: it.skuProveedor })) },
+        select: { proveedorId: true, sku: true, marca: true },
+      });
+      const marcaMap = {};
+      productos.forEach(p => { marcaMap[`${p.proveedorId}:${p.sku}`] = p.marca; });
+      items.forEach(it => { it.marca = marcaMap[`${it.proveedorId}:${it.skuProveedor}`] ?? null; });
+    }
+
     res.json({ total, page, limit, totalPaginas: Math.ceil(total / limit), items });
   } catch (err) {
     console.error('GET /mapeo/items error:', err);
