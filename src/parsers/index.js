@@ -10,6 +10,7 @@ const { parsearCambiaso }    = require('./cambiaso.parser');
 const { parsearWinnex }      = require('./winnex.parser');
 const { parsearRommel }      = require('./rommel.parser');
 const { parsearDemarka }     = require('./demarka.parser');
+const { parsearChipro }      = require('./chipro.parser');
 const { parsearAutodetect }  = require('./autodetect.parser');
 
 const tieneApiKey = () => !!process.env.OPENAI_API_KEY;
@@ -29,6 +30,7 @@ async function parsearArchivo(buffer, tipo, config, proveedorSlug) {
   if (config?.tipo === 'winnex')       return { productos: parsearWinnex(buffer),                    sugerencia: null };
   if (config?.tipo === 'rommel')       return { productos: parsearRommel(buffer, config),            sugerencia: null };
   if (config?.tipo === 'demarka')      return { productos: parsearDemarka(buffer),                   sugerencia: null };
+  if (config?.tipo === 'chipro')       return { productos: parsearChipro(buffer),                    sugerencia: null };
 
   if (config?.tipo === 'ia') {
     // PPT/PPTX: parsearConIA no los soporta; extraer texto localmente + IA
