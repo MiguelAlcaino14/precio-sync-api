@@ -176,9 +176,22 @@ model MapeoSku {
   ultimaVezVisto      DateTime @default(now())
   creadoEn            DateTime @default(now())
 
-  proveedor Proveedor @relation(fields: [proveedorId], references: [id])
+  proveedor Proveedor      @relation(fields: [proveedorId], references: [id])
+  links     MapeoSkuLink[]
 
   @@unique([proveedorId, skuProveedor])
+}
+
+model MapeoSkuLink {
+  id                  String   @id @default(cuid())
+  mapeoSkuId          String
+  jumpsellerProductId Int
+  jumpsellerNombre    String?
+  creadoEn            DateTime @default(now())
+
+  mapeoSku MapeoSku @relation(fields: [mapeoSkuId], references: [id], onDelete: Cascade)
+
+  @@unique([mapeoSkuId, jumpsellerProductId])
 }
 
 enum Rol {

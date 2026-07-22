@@ -87,34 +87,46 @@ async function publicarPrecios(cambios) {
     let info           = null;
     let matchPorNombre = false;
 
-    // Consultar MapeoSku primero
+    // Consultar MapeoSku y sus vínculos extra
+    const productIds = new Set();
     if (c.proveedorId) {
-      const mapeo = await buscarMapeo(c.proveedorId, normSku(c.sku));
-      if (mapeo && mapeo.estado === 'confirmado' && mapeo.jumpsellerProductId) {
-        info = { productId: mapeo.jumpsellerProductId };
+      const mapeo = await prisma.mapeoSku.findUnique({
+        where:   { proveedorId_skuProveedor: { proveedorId: c.proveedorId, skuProveedor: normSku(c.sku) } },
+        include: { links: { select: { jumpsellerProductId: true } } },
+      });
+      if (mapeo && mapeo.estado === 'confirmado') {
+        if (mapeo.jumpsellerProductId) productIds.add(mapeo.jumpsellerProductId);
+        for (const l of mapeo.links ?? []) productIds.add(l.jumpsellerProductId);
       }
     }
 
-    if (!info) info = mapaSku[c.sku] ?? null;
-
-    if (!info && c.nombre) {
-      info = mapaNombre[normNombre(c.nombre)] ?? null;
-      if (info) matchPorNombre = true;
+    if (!productIds.size) {
+      const bysku = mapaSku[c.sku];
+      if (bysku) productIds.add(bysku.productId);
     }
 
-    if (!info) {
+    if (!productIds.size && c.nombre) {
+      const byNombre = mapaNombre[normNombre(c.nombre)];
+      if (byNombre) { productIds.add(byNombre.productId); matchPorNombre = true; }
+    }
+
+    if (!productIds.size) {
       resultados.push({ id: c.id, sku: c.sku, ok: false, error: 'No encontrado en JumpSeller (SKU ni nombre)' });
       continue;
     }
 
-    try {
-      await jsPut(`/products/${info.productId}.json`, {
-        product: { price: c.precioVenta },
-      });
-      resultados.push({ id: c.id, sku: c.sku, ok: true, matchPorNombre });
-      await sleep(DELAY);
-    } catch (e) {
-      resultados.push({ id: c.id, sku: c.sku, ok: false, error: e.message });
+    let okCount = 0; let lastErr = null;
+    for (const productId of productIds) {
+      try {
+        await jsPut(`/products/${productId}.json`, { product: { price: c.precioVenta } });
+        okCount++;
+        await sleep(DELAY);
+      } catch (e) { lastErr = e.message; }
+    }
+    if (okCount > 0) {
+      resultados.push({ id: c.id, sku: c.sku, ok: true, matchPorNombre, actualizados: okCount });
+    } else {
+      resultados.push({ id: c.id, sku: c.sku, ok: false, error: lastErr });
     }
   }
 

@@ -17,7 +17,11 @@ async function getMapaJS() {
   return _mapaPromise;
 }
 
-const INCLUDE_PROVEEDOR = { proveedor: { select: { nombre: true, tema: true } } };
+const INCLUDE_BASE = {
+  proveedor: { select: { nombre: true, tema: true } },
+  links:     { select: { id: true, jumpsellerProductId: true, jumpsellerNombre: true, creadoEn: true }, orderBy: { creadoEn: 'asc' } },
+};
+const INCLUDE_PROVEEDOR = INCLUDE_BASE;
 
 function buildWhere({ proveedorId, estado, categoria, q }) {
   const where = {};
@@ -244,6 +248,44 @@ router.post('/:id/restaurar', async (req, res) => {
     res.json(await prisma.mapeoSku.update({ where: { id: req.params.id }, data: { estado: 'pendiente' } }));
   } catch (err) {
     console.error('POST /mapeo/:id/restaurar error:', err);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// POST /api/mapeo/:id/links — agregar vínculo JumpSeller extra
+router.post('/:id/links', async (req, res) => {
+  try {
+    const { jumpsellerProductId, jumpsellerNombre } = req.body;
+    if (!jumpsellerProductId || !Number.isInteger(jumpsellerProductId) || jumpsellerProductId <= 0)
+      return res.status(400).json({ error: 'jumpsellerProductId debe ser un entero positivo' });
+    const mapeo = await prisma.mapeoSku.findUnique({ where: { id: req.params.id } });
+    if (!mapeo) return res.status(404).json({ error: 'Item no encontrado' });
+    // No duplicar el vínculo principal
+    if (mapeo.jumpsellerProductId === jumpsellerProductId)
+      return res.status(409).json({ error: 'Ese producto ya es el vínculo principal de este item' });
+    const link = await prisma.mapeoSkuLink.upsert({
+      where:  { mapeoSkuId_jumpsellerProductId: { mapeoSkuId: req.params.id, jumpsellerProductId } },
+      update: { jumpsellerNombre: jumpsellerNombre?.trim().slice(0, 500) ?? null },
+      create: { mapeoSkuId: req.params.id, jumpsellerProductId, jumpsellerNombre: jumpsellerNombre?.trim().slice(0, 500) ?? null },
+    });
+    res.json(link);
+  } catch (err) {
+    if (err.code === 'P2002') return res.status(409).json({ error: 'Ese vínculo ya existe' });
+    console.error('POST /mapeo/:id/links error:', err);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// DELETE /api/mapeo/:id/links/:linkId — eliminar vínculo extra
+router.delete('/:id/links/:linkId', async (req, res) => {
+  try {
+    await prisma.mapeoSkuLink.delete({
+      where: { id: req.params.linkId, mapeoSkuId: req.params.id },
+    });
+    res.json({ ok: true });
+  } catch (err) {
+    if (err.code === 'P2025') return res.status(404).json({ error: 'Vínculo no encontrado' });
+    console.error('DELETE /mapeo/:id/links/:linkId error:', err);
     res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
