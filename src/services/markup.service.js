@@ -101,16 +101,21 @@ async function recalcularDescuento(proveedorId, oldDescuento, newDescuento) {
  * Recalcula precios sugeridos para todos los cambios pendientes de un proveedor.
  */
 async function recalcularCambiosPendientes(proveedorId) {
+  const where = { estado: 'pendiente' };
+  if (proveedorId) where.producto = { proveedorId };
+
   const cambios = await prisma.cambioPendiente.findMany({
-    where: { estado: 'pendiente', producto: { proveedorId } },
+    where,
     include: { producto: true },
   });
+
+  console.log(`[recalcularCambiosPendientes] proveedorId=${proveedorId ?? 'global'} cambios=${cambios.length}`);
 
   for (const cambio of cambios) {
     const { precio } = await calcularPrecioVenta(
       cambio.producto.sku,
       cambio.costoNuevo,
-      proveedorId,
+      cambio.producto.proveedorId,
     );
     await prisma.cambioPendiente.update({
       where: { id: cambio.id },

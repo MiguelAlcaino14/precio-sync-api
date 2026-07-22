@@ -80,6 +80,7 @@ router.put('/:id', requireAdmin, async (req, res) => {
     if (nombreContiene !== undefined) data.nombreContiene = nombreContiene || null;
 
     const regla = await prisma.reglaMarkup.update({ where: { id: req.params.id }, data });
+    await recalcularCambiosPendientes(regla.proveedorId ?? null);
     res.json(regla);
   } catch (err) {
     console.error('PUT /reglas error:', err);
@@ -90,7 +91,9 @@ router.put('/:id', requireAdmin, async (req, res) => {
 // DELETE /api/reglas/:id
 router.delete('/:id', requireAdmin, async (req, res) => {
   try {
+    const regla = await prisma.reglaMarkup.findUnique({ where: { id: req.params.id } });
     await prisma.reglaMarkup.delete({ where: { id: req.params.id } });
+    await recalcularCambiosPendientes(regla?.proveedorId ?? null);
     res.json({ ok: true });
   } catch (err) {
     console.error('DELETE /reglas error:', err);
