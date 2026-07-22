@@ -43,8 +43,8 @@ const normNombre = s => String(s || '')
 
 /**
  * Pagina todos los productos de JumpSeller y construye dos mapas:
- *   mapaSku:    sku exacto   → { productId }
- *   mapaNombre: nombre norm. → { productId }
+ *   mapaSku:    sku exacto   → { productId, nombre, sku }
+ *   mapaNombre: nombre norm. → { productId, nombre, sku }
  */
 async function construirMapas() {
   const mapaSku    = {};
@@ -57,13 +57,12 @@ async function construirMapas() {
     if (!Array.isArray(products) || products.length === 0) break;
 
     for (const p of products) {
-      const prod = p.product ?? p; // JumpSeller wraps cada item en {product: {...}}
-      const sku  = String(prod.sku || prod.variants?.[0]?.sku || '').trim();
-      if (sku) mapaSku[sku] = { productId: prod.id };
-      if (prod.name) {
-        const norm = normNombre(prod.name);
-        if (norm) mapaNombre[norm] = { productId: prod.id };
-      }
+      const prod   = p.product ?? p;
+      const sku    = String(prod.sku || prod.variants?.[0]?.sku || '').trim();
+      const nombre = prod.name ? String(prod.name).trim() : '';
+      const entry  = { productId: prod.id, nombre, sku };
+      if (sku)    mapaSku[sku]                = entry;
+      if (nombre) mapaNombre[normNombre(nombre)] = entry;
     }
 
     if (products.length < limit) break;

@@ -96,16 +96,30 @@ router.get('/pendientes', async (req, res) => {
 router.get('/buscar-jumpseller', async (req, res) => {
   try {
     const q = String(req.query.q || '').trim().slice(0, 100);
-    if (q.length < 3) return res.json([]);
-    const mapa    = await getMapaJS();
-    const qLower  = q.toLowerCase();
-    const result  = [];
-    for (const [nombre, { productId }] of Object.entries(mapa.mapaNombre)) {
-      if (nombre.includes(qLower)) {
-        result.push({ productId, nombre });
-        if (result.length >= 20) break;
-      }
+    if (q.length < 2) return res.json([]);
+    const mapa   = await getMapaJS();
+    const qLower = q.toLowerCase();
+    const seen   = new Set();
+    const result = [];
+
+    const push = (entry) => {
+      if (!entry || seen.has(entry.productId)) return;
+      seen.add(entry.productId);
+      result.push({ productId: entry.productId, nombre: entry.nombre, sku: entry.sku });
+    };
+
+    // Coincidencias exactas de SKU primero
+    for (const [sku, entry] of Object.entries(mapa.mapaSku)) {
+      if (sku.toLowerCase().includes(qLower)) push(entry);
+      if (result.length >= 20) break;
     }
+
+    // Luego por nombre normalizado
+    for (const [, entry] of Object.entries(mapa.mapaNombre)) {
+      if (entry.nombre.toLowerCase().includes(qLower)) push(entry);
+      if (result.length >= 20) break;
+    }
+
     res.json(result);
   } catch (err) {
     console.error('GET /mapeo/buscar-jumpseller error:', err);

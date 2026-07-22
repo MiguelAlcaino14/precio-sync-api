@@ -32,6 +32,22 @@ function validar(body) {
   return null;
 }
 
+// GET /api/ofertas/marcas — marcas distintas registradas en Producto
+router.get('/marcas', async (req, res) => {
+  try {
+    const rows = await prisma.producto.findMany({
+      where:    { marca: { not: null } },
+      select:   { marca: true },
+      distinct: ['marca'],
+      orderBy:  { marca: 'asc' },
+    });
+    res.json(rows.map(r => r.marca).filter(Boolean));
+  } catch (err) {
+    console.error('GET /ofertas/marcas error:', err);
+    res.status(500).json({ error: 'Error interno' });
+  }
+});
+
 // GET /api/ofertas
 router.get('/', async (req, res) => {
   try {
