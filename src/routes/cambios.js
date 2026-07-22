@@ -16,7 +16,7 @@ router.get('/', async (req, res) => {
         ...(proveedorId ? { producto: { proveedorId } } : {}),
       },
       include: {
-        producto: { include: { proveedor: true } },
+        producto: { include: { proveedor: true, precioVenta: true } },
         archivo: { include: { proveedor: { select: { nombre: true } } } },
       },
       orderBy: { createdAt: 'desc' },
