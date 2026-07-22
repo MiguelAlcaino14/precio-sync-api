@@ -147,11 +147,25 @@ model Oferta {
   fechaInicio  DateTime?
   fechaFin     DateTime?
   activa       Boolean   @default(true)
+  publicada    Boolean   @default(false)
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  proveedor Proveedor? @relation(fields: [proveedorId], references: [id])
-  producto  Producto?  @relation(fields: [productoId], references: [id])
+  proveedor    Proveedor?         @relation(fields: [proveedorId], references: [id])
+  producto     Producto?          @relation(fields: [productoId], references: [id])
+  aplicaciones OfertaAplicacion[]
+}
+
+model OfertaAplicacion {
+  id                  String   @id @default(cuid())
+  ofertaId            String
+  jumpsellerProductId Int
+  precioOriginal      Float
+  createdAt           DateTime @default(now())
+
+  oferta Oferta @relation(fields: [ofertaId], references: [id], onDelete: Cascade)
+
+  @@unique([ofertaId, jumpsellerProductId])
 }
 
 model Notificacion {

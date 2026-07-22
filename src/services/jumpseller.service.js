@@ -162,4 +162,24 @@ async function marcarPublicados(ids) {
   });
 }
 
-module.exports = { publicarPrecios, generarCSVImport, marcarPublicados, construirMapas, normNombre };
+/**
+ * Aplica precio de oferta con compare_at_price en JumpSeller.
+ */
+async function aplicarPrecioOferta(jsProductId, precioOferta, precioOriginal) {
+  await jsPut(`/products/${jsProductId}.json`, {
+    product: { price: precioOferta, original_price: precioOriginal },
+  });
+  await sleep(DELAY);
+}
+
+/**
+ * Revierte precio de oferta: restaura precio original y quita compare_at_price.
+ */
+async function revertirPrecioOferta(jsProductId, precioOriginal) {
+  await jsPut(`/products/${jsProductId}.json`, {
+    product: { price: precioOriginal, original_price: null },
+  });
+  await sleep(DELAY);
+}
+
+module.exports = { publicarPrecios, generarCSVImport, marcarPublicados, construirMapas, normNombre, aplicarPrecioOferta, revertirPrecioOferta };

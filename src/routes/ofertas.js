@@ -1,6 +1,8 @@
 const express = require('express');
 const prisma  = require('../db');
 const { requireAdmin } = require('../middleware/auth');
+const { aplicarPrecioOferta, revertirPrecioOferta } = require('../services/jumpseller.service');
+const { normSku } = require('../services/mapeo.service');
 
 const router = express.Router();
 
@@ -157,6 +159,105 @@ router.patch('/:id/toggle', async (req, res) => {
     res.json({ id: oferta.id, activa: oferta.activa });
   } catch (err) {
     console.error('PATCH /ofertas/:id/toggle error:', err);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// POST /api/ofertas/:id/publicar — aplica descuento en JumpSeller con compare_at_price
+router.post('/:id/publicar', requireAdmin, async (req, res) => {
+  try {
+    const oferta = await prisma.oferta.findUnique({ where: { id: req.params.id } });
+    if (!oferta) return res.status(404).json({ error: 'Oferta no encontrada' });
+    if (oferta.publicada) return res.status(400).json({ error: 'Oferta ya publicada. Revertir primero.' });
+
+    // Construir filtro de productos según tipo de oferta
+    const productoWhere = {};
+    if (oferta.tipo === 'proveedor') productoWhere.proveedorId = oferta.proveedorId;
+    if (oferta.tipo === 'marca')     productoWhere.marca        = oferta.marca;
+    if (oferta.tipo === 'categoria') productoWhere.categoria    = oferta.categoria;
+    if (oferta.tipo === 'producto')  productoWhere.id           = oferta.productoId;
+
+    const productos = await prisma.producto.findMany({
+      where: productoWhere,
+      include: { precioVenta: true },
+    });
+
+    const aplicaciones = [];
+    const errores      = [];
+
+    for (const prod of productos) {
+      if (!prod.precioVenta?.precio) continue;
+
+      const mapeo = await prisma.mapeoSku.findUnique({
+        where:   { proveedorId_skuProveedor: { proveedorId: prod.proveedorId, skuProveedor: normSku(prod.sku) } },
+        include: { links: { select: { jumpsellerProductId: true } } },
+      });
+      if (!mapeo || mapeo.estado !== 'confirmado') continue;
+
+      const jsIds = new Set();
+      if (mapeo.jumpsellerProductId) jsIds.add(mapeo.jumpsellerProductId);
+      for (const l of mapeo.links ?? []) jsIds.add(l.jumpsellerProductId);
+      if (!jsIds.size) continue;
+
+      const precioOriginal = Math.round(prod.precioVenta.precio);
+      const precioOferta   = Math.round(precioOriginal * (1 - oferta.descuentoPct / 100));
+
+      for (const jsId of jsIds) {
+        try {
+          await aplicarPrecioOferta(jsId, precioOferta, precioOriginal);
+          aplicaciones.push({ ofertaId: oferta.id, jumpsellerProductId: jsId, precioOriginal });
+        } catch (e) {
+          console.error(`[oferta.publicar] sku=${prod.sku} jsId=${jsId} err=${e.message}`);
+          errores.push({ sku: prod.sku, error: e.message });
+        }
+      }
+    }
+
+    await prisma.$transaction([
+      prisma.ofertaAplicacion.createMany({ data: aplicaciones, skipDuplicates: true }),
+      prisma.oferta.update({ where: { id: oferta.id }, data: { publicada: true } }),
+    ]);
+
+    console.log(`[oferta.publicar] ofertaId=${oferta.id} aplicados=${aplicaciones.length} errores=${errores.length}`);
+    res.json({ aplicados: aplicaciones.length, errores });
+  } catch (err) {
+    console.error('POST /ofertas/:id/publicar error:', err);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// POST /api/ofertas/:id/revertir — restaura precios originales en JumpSeller
+router.post('/:id/revertir', requireAdmin, async (req, res) => {
+  try {
+    const oferta = await prisma.oferta.findUnique({
+      where:   { id: req.params.id },
+      include: { aplicaciones: true },
+    });
+    if (!oferta) return res.status(404).json({ error: 'Oferta no encontrada' });
+    if (!oferta.publicada) return res.status(400).json({ error: 'Oferta no está publicada' });
+
+    let revertidos = 0;
+    const errores  = [];
+
+    for (const ap of oferta.aplicaciones) {
+      try {
+        await revertirPrecioOferta(ap.jumpsellerProductId, ap.precioOriginal);
+        revertidos++;
+      } catch (e) {
+        console.error(`[oferta.revertir] jsId=${ap.jumpsellerProductId} err=${e.message}`);
+        errores.push({ jumpsellerProductId: ap.jumpsellerProductId, error: e.message });
+      }
+    }
+
+    await prisma.$transaction([
+      prisma.ofertaAplicacion.deleteMany({ where: { ofertaId: oferta.id } }),
+      prisma.oferta.update({ where: { id: oferta.id }, data: { publicada: false } }),
+    ]);
+
+    console.log(`[oferta.revertir] ofertaId=${oferta.id} revertidos=${revertidos} errores=${errores.length}`);
+    res.json({ revertidos, errores });
+  } catch (err) {
+    console.error('POST /ofertas/:id/revertir error:', err);
     res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
