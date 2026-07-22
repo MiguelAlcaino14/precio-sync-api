@@ -84,7 +84,8 @@ router.post('/jumpseller', requireAdmin, syncLimiter, async (req, res) => {
       const products = await resp.json();
       if (!Array.isArray(products) || products.length === 0) break;
 
-      for (const p of products) {
+      for (const raw of products) {
+        const p = raw.product ?? raw;
         totalJS++;
         const precio = Number(p.price) || Number(p.variants?.[0]?.price) || 0;
         if (!precio || precio <= 0) continue;
