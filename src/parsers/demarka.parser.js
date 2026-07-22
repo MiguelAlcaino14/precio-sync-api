@@ -5,31 +5,37 @@ const FACTOR_IVA = 1.19;
 
 const norm = s => String(s)
   .normalize('NFD').replace(/[̀-ͯ]/g, '')
-  .replace(/^[^\p{L}\d]+/u, '')
   .trim()
   .toLowerCase();
 
 function encontrarHeader(filas) {
-  for (let i = 0; i < Math.min(filas.length, 15); i++) {
+  for (let i = 0; i < Math.min(filas.length, 20); i++) {
     const lower = filas[i].map(c => norm(String(c)));
-    if (lower.includes(norm('CODIGO ADETEC')) && lower.includes(norm('PRECIO LISTA C/DSCT'))) {
-      return i;
-    }
+    if (lower.some(h => h.includes('codigo adetec'))) return i;
   }
   return -1;
 }
 
 function parsearHoja(filas, nombreHoja) {
   const idxHeader = encontrarHeader(filas);
-  if (idxHeader === -1) return [];
+  if (idxHeader === -1) {
+    console.log(`[demarka] ${nombreHoja}: no se encontró fila de headers`);
+    return [];
+  }
 
   const headers = filas[idxHeader].map(c => norm(String(c)));
+  console.log(`[demarka] ${nombreHoja}: headers encontrados en fila ${idxHeader}:`, headers.filter(Boolean));
 
-  const iSku     = headers.findIndex(h => h === norm('CODIGO ADETEC'));
-  const iNombre  = headers.findIndex(h => h === norm('DESCRIPCION'));
-  const iPrecio  = headers.findIndex(h => h === norm('PRECIO LISTA C/DSCT'));
-  const iCaja    = headers.findIndex(h => h === norm('UNID MIN DESPACHO'));
-  const iPallet  = headers.findIndex(h => h === norm('CAJA MASTER'));
+  const iSku    = headers.findIndex(h => h.includes('codigo adetec'));
+  const iNombre = headers.findIndex(h => h.includes('descripcion'));
+  // Preferir columna con descuento (contiene 'dsct'), si no la última que contenga 'lista'
+  const iDsct   = headers.findIndex(h => h.includes('lista') && h.includes('dsct'));
+  const iListas = headers.reduce((acc, h, i) => { if (h.includes('lista')) acc.push(i); return acc; }, []);
+  const iPrecio = iDsct !== -1 ? iDsct : (iListas.length > 0 ? iListas[iListas.length - 1] : -1);
+  const iCaja   = headers.findIndex(h => h.includes('unid min'));
+  const iPallet = headers.findIndex(h => h.includes('caja master'));
+
+  console.log(`[demarka] ${nombreHoja}: iSku=${iSku} iNombre=${iNombre} iPrecio=${iPrecio}(dsct=${iDsct}) iCaja=${iCaja} iPallet=${iPallet}`);
 
   if (iSku === -1 || iNombre === -1 || iPrecio === -1) return [];
 
