@@ -26,9 +26,11 @@ function validar(body) {
   }
   if (tipo === 'producto'  && !productoId)     return 'productoId requerido para tipo producto';
 
-  if (fechaInicio && isNaN(Date.parse(fechaInicio))) return 'fechaInicio inválida';
-  if (fechaFin    && isNaN(Date.parse(fechaFin)))    return 'fechaFin inválida';
-  if (fechaInicio && fechaFin && new Date(fechaFin) <= new Date(fechaInicio)) {
+  if (!fechaInicio)                                  return 'fechaInicio es requerida';
+  if (!fechaFin)                                     return 'fechaFin es requerida';
+  if (isNaN(Date.parse(fechaInicio)))                return 'fechaInicio inválida';
+  if (isNaN(Date.parse(fechaFin)))                   return 'fechaFin inválida';
+  if (new Date(fechaFin) <= new Date(fechaInicio)) {
     return 'fechaFin debe ser posterior a fechaInicio';
   }
   return null;
