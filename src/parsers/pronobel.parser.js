@@ -69,12 +69,15 @@ function parsearFormato(ws, { headerFila, colSku, colNombre, colMarca, colEMB, c
 
     if (!sku || !nombre || precio <= 0) continue;
 
+    const unidadesCaja = Number(r[colEMB]) > 0 ? Number(r[colEMB]) : null;
+
     productos.push({
       sku,
       nombre,
       costo:        Math.round(precio),
       marca:        colMarca != null ? (String(r[colMarca] || '').trim() || null) : null,
-      unidadesCaja: Number(r[colEMB]) > 0 ? Number(r[colEMB]) : null,
+      unidadesCaja,
+      categoria:    unidadesCaja != null ? (unidadesCaja > 1 ? 'caja' : 'unidad') : null,
     });
   }
 
