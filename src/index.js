@@ -26,6 +26,7 @@ const notificacionesRouter  = require('./routes/notificaciones');
 const syncRouter            = require('./routes/sync');
 const ofertasRouter         = require('./routes/ofertas');
 const mapeoRoutes           = require('./routes/mapeo');
+const productosRouter       = require('./routes/productos');
 
 const app        = express();
 const PORT       = process.env.PORT || 3001;
@@ -82,6 +83,7 @@ app.use('/api/notificaciones', notificacionesRouter);
 app.use('/api/sync',          syncRouter);
 app.use('/api/ofertas',       ofertasRouter);
 app.use('/api/mapeo',         mapeoRoutes);
+app.use('/api/productos',     productosRouter);
 
 app.use((err, req, res, next) => {
   console.error(err);
