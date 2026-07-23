@@ -31,7 +31,7 @@ router.get('/skus', async (req, res) => {
           { nombre: { contains: q, mode: 'insensitive' } },
         ],
       },
-      select: { sku: true, nombre: true, marca: true },
+      select: { id: true, sku: true, nombre: true, marca: true },
       take: 10,
     });
     res.json(productos);
