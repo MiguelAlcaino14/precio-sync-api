@@ -70,6 +70,14 @@ function parsearFormatoB(wb) {
   const productos  = [];
   const skusVistos = new Set();
 
+  console.log(`[libesa-B] hojas disponibles: ${wb.SheetNames.join(', ')}`);
+
+  // Busca hoja cuyo nombre contenga la keyword (case-insensitive)
+  function hoja(keyword) {
+    const nombre = wb.SheetNames.find(n => n.toUpperCase().includes(keyword.toUpperCase()));
+    return nombre ? wb.Sheets[nombre] : null;
+  }
+
   function agregarHoja(ws, { skuCol, nombreCol, ldvCol, precioCol, licitCol, headerFila }) {
     if (!ws) return;
     const filas = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
@@ -85,10 +93,10 @@ function parsearFormatoB(wb) {
     }
   }
 
-  agregarHoja(wb.Sheets['GENERAL 2024 - 2025'], { skuCol: 1, nombreCol: 2, ldvCol: 3, precioCol: 4, licitCol: 7, headerFila: 0 });
-  agregarHoja(wb.Sheets['NUEVO HOGAR'],          { skuCol: 1, nombreCol: 2, ldvCol: 3, precioCol: 4, licitCol: null, headerFila: 0 });
-  agregarHoja(wb.Sheets['SALDOS COLECCIONES'],   { skuCol: 0, nombreCol: 1, ldvCol: 2, precioCol: 3, licitCol: null, headerFila: 0 });
-  agregarHoja(wb.Sheets['CD FSC'],               { skuCol: 0, nombreCol: 1, ldvCol: 2, precioCol: 3, licitCol: null, headerFila: 0 });
+  agregarHoja(hoja('GENERAL'),    { skuCol: 1, nombreCol: 2, ldvCol: 3, precioCol: 4, licitCol: 7, headerFila: 0 });
+  agregarHoja(hoja('HOGAR'),      { skuCol: 1, nombreCol: 2, ldvCol: 3, precioCol: 4, licitCol: null, headerFila: 0 });
+  agregarHoja(hoja('SALDOS'),     { skuCol: 0, nombreCol: 1, ldvCol: 2, precioCol: 3, licitCol: null, headerFila: 0 });
+  agregarHoja(hoja('FSC'),        { skuCol: 0, nombreCol: 1, ldvCol: 2, precioCol: 3, licitCol: null, headerFila: 0 });
 
   console.log(`[libesa-B] ${productos.length} productos parseados`);
   return productos;
