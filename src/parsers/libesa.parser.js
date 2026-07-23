@@ -56,9 +56,9 @@ function parsearLibesa(buffer) {
       const sku = String(r[2] || '').trim();
       if (!sku || skusVistos.has(sku)) continue;
 
-      const precioNeto  = Number(r[12]) || 0;
       const precioLicit = Number(r[13]) || 0;
-      const precio      = precioNeto > 0 ? precioNeto : precioLicit;
+      const precioNeto  = Number(r[12]) || 0;
+      const precio      = precioLicit > 0 ? precioLicit : precioNeto;
       if (precio <= 0) continue;
 
       const nombre = String(r[3] || '').trim().replace(/^[\s*]+/, '');
