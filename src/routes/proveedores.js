@@ -430,6 +430,19 @@ async function procesarArchivo(archivoId, proveedor, buffer, tipo, nombreArchivo
           if (prod.sku) {
             await guardarMapeo(proveedor.id, prod.sku, null, 'pendiente', null, prod.nombre).catch(() => {});
           }
+          // Actualizar metadatos (nombre, categoria, etc.) del producto existente aunque no esté en JumpSeller
+          if (prod.sku) {
+            const existente = await prisma.producto.findUnique({ where: { sku: prod.sku } });
+            if (existente) {
+              const upd = {};
+              if (prod.nombre    && !existente.nombre)    upd.nombre    = prod.nombre;
+              if (prod.marca     && !existente.marca)     upd.marca     = prod.marca;
+              if (prod.categoria && CATEGORIAS_VALIDAS.includes(prod.categoria) && !existente.categoria) upd.categoria = prod.categoria;
+              if (prod.unidadesCaja   && !existente.unidadesCaja)   upd.unidadesCaja   = prod.unidadesCaja;
+              if (prod.unidadesPallet && !existente.unidadesPallet) upd.unidadesPallet = prod.unidadesPallet;
+              if (Object.keys(upd).length) await prisma.producto.update({ where: { id: existente.id }, data: upd });
+            }
+          }
           continue;
         }
 
