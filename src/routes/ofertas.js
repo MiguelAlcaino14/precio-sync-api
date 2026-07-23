@@ -10,7 +10,7 @@ const TIPOS_VALIDOS   = ['proveedor', 'marca', 'categoria', 'producto'];
 const CATEGORIAS_VALIDAS = ['libreria', 'aseo', 'alimentos'];
 
 function validar(body) {
-  const { nombre, tipo, descuentoPct, proveedorId, marca, categoria, productoId, fechaInicio, fechaFin } = body;
+  const { nombre, tipo, descuentoPct, proveedorId, marca, categoria, productoIds, fechaInicio, fechaFin } = body;
 
   if (!nombre?.trim())                         return 'nombre es requerido';
   if (nombre.trim().length > 100)              return 'nombre máximo 100 caracteres';
@@ -24,7 +24,9 @@ function validar(body) {
   if (tipo === 'categoria') {
     if (!CATEGORIAS_VALIDAS.includes(categoria)) return `categoria inválida. Valores: ${CATEGORIAS_VALIDAS.join(', ')}`;
   }
-  if (tipo === 'producto'  && !productoId)     return 'productoId requerido para tipo producto';
+  if (tipo === 'producto') {
+    if (!Array.isArray(productoIds) || productoIds.length === 0) return 'productoIds debe tener al menos un producto';
+  }
 
   if (!fechaInicio)                                  return 'fechaInicio es requerida';
   if (!fechaFin)                                     return 'fechaFin es requerida';
@@ -35,6 +37,12 @@ function validar(body) {
   }
   return null;
 }
+
+const OFERTA_INCLUDE = {
+  proveedor:       { select: { id: true, nombre: true } },
+  producto:        { select: { id: true, sku: true, nombre: true } },
+  productosOferta: { select: { id: true, producto: { select: { id: true, sku: true, nombre: true } } } },
+};
 
 // GET /api/ofertas/marcas — marcas distintas registradas en Producto
 router.get('/marcas', async (req, res) => {
@@ -56,10 +64,7 @@ router.get('/marcas', async (req, res) => {
 router.get('/', async (req, res) => {
   try {
     const ofertas = await prisma.oferta.findMany({
-      include: {
-        proveedor: { select: { id: true, nombre: true } },
-        producto:  { select: { id: true, sku: true, nombre: true } },
-      },
+      include: OFERTA_INCLUDE,
       orderBy: { createdAt: 'desc' },
     });
     res.json(ofertas);
@@ -75,7 +80,7 @@ router.post('/', async (req, res) => {
     const error = validar(req.body);
     if (error) return res.status(400).json({ error });
 
-    const { nombre, tipo, descuentoPct, proveedorId, marca, categoria, productoId, fechaInicio, fechaFin } = req.body;
+    const { nombre, tipo, descuentoPct, proveedorId, marca, categoria, productoIds, fechaInicio, fechaFin } = req.body;
 
     const oferta = await prisma.oferta.create({
       data: {
@@ -85,15 +90,17 @@ router.post('/', async (req, res) => {
         proveedorId:  tipo === 'proveedor' ? proveedorId : null,
         marca:        tipo === 'marca'     ? marca.trim().slice(0, 100) : null,
         categoria:    tipo === 'categoria' ? categoria : null,
-        productoId:   tipo === 'producto'  ? productoId : null,
-        fechaInicio:  fechaInicio ? new Date(fechaInicio) : null,
-        fechaFin:     fechaFin    ? new Date(fechaFin)    : null,
+        productoId:   null,
+        fechaInicio:  new Date(fechaInicio),
+        fechaFin:     new Date(fechaFin),
         activa:       true,
+        ...(tipo === 'producto' && {
+          productosOferta: {
+            create: productoIds.map(id => ({ productoId: id })),
+          },
+        }),
       },
-      include: {
-        proveedor: { select: { id: true, nombre: true } },
-        producto:  { select: { id: true, sku: true, nombre: true } },
-      },
+      include: OFERTA_INCLUDE,
     });
 
     res.status(201).json(oferta);
@@ -115,7 +122,12 @@ router.put('/:id', async (req, res) => {
     const error = validar(req.body);
     if (error) return res.status(400).json({ error });
 
-    const { nombre, tipo, descuentoPct, proveedorId, marca, categoria, productoId, fechaInicio, fechaFin, activa } = req.body;
+    const { nombre, tipo, descuentoPct, proveedorId, marca, categoria, productoIds, fechaInicio, fechaFin, activa } = req.body;
+
+    // Para tipo producto: reemplazar todos los OfertaProducto
+    if (tipo === 'producto') {
+      await prisma.ofertaProducto.deleteMany({ where: { ofertaId: id } });
+    }
 
     const oferta = await prisma.oferta.update({
       where: { id },
@@ -126,15 +138,17 @@ router.put('/:id', async (req, res) => {
         proveedorId:  tipo === 'proveedor' ? proveedorId : null,
         marca:        tipo === 'marca'     ? marca.trim().slice(0, 100) : null,
         categoria:    tipo === 'categoria' ? categoria : null,
-        productoId:   tipo === 'producto'  ? productoId : null,
-        fechaInicio:  fechaInicio ? new Date(fechaInicio) : null,
-        fechaFin:     fechaFin    ? new Date(fechaFin)    : null,
+        productoId:   null,
+        fechaInicio:  new Date(fechaInicio),
+        fechaFin:     new Date(fechaFin),
         activa:       activa !== undefined ? Boolean(activa) : existe.activa,
+        ...(tipo === 'producto' && {
+          productosOferta: {
+            create: productoIds.map(pid => ({ productoId: pid })),
+          },
+        }),
       },
-      include: {
-        proveedor: { select: { id: true, nombre: true } },
-        producto:  { select: { id: true, sku: true, nombre: true } },
-      },
+      include: OFERTA_INCLUDE,
     });
 
     res.json(oferta);
@@ -168,7 +182,10 @@ router.patch('/:id/toggle', async (req, res) => {
 // POST /api/ofertas/:id/publicar — aplica descuento en JumpSeller con compare_at_price
 router.post('/:id/publicar', requireAdmin, async (req, res) => {
   try {
-    const oferta = await prisma.oferta.findUnique({ where: { id: req.params.id } });
+    const oferta = await prisma.oferta.findUnique({
+      where:   { id: req.params.id },
+      include: { productosOferta: { select: { productoId: true } } },
+    });
     if (!oferta) return res.status(404).json({ error: 'Oferta no encontrada' });
     if (oferta.publicada) return res.status(400).json({ error: 'Oferta ya publicada. Revertir primero.' });
 
@@ -177,7 +194,10 @@ router.post('/:id/publicar', requireAdmin, async (req, res) => {
     if (oferta.tipo === 'proveedor') productoWhere.proveedorId = oferta.proveedorId;
     if (oferta.tipo === 'marca')     productoWhere.marca        = oferta.marca;
     if (oferta.tipo === 'categoria') productoWhere.categoria    = oferta.categoria;
-    if (oferta.tipo === 'producto')  productoWhere.id           = oferta.productoId;
+    if (oferta.tipo === 'producto') {
+      const ids = oferta.productosOferta.map(p => p.productoId);
+      productoWhere.id = { in: ids };
+    }
 
     const productos = await prisma.producto.findMany({
       where: productoWhere,

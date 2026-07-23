@@ -38,11 +38,12 @@ model Producto {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  proveedor    Proveedor         @relation(fields: [proveedorId], references: [id])
-  costos       PrecioCosto[]
-  precioVenta  PrecioVenta?
-  cambios      CambioPendiente[]
-  ofertas      Oferta[]
+  proveedor       Proveedor         @relation(fields: [proveedorId], references: [id])
+  costos          PrecioCosto[]
+  precioVenta     PrecioVenta?
+  cambios         CambioPendiente[]
+  ofertas         Oferta[]
+  ofertaProductos OfertaProducto[]
 }
 
 model PrecioCosto {
@@ -151,9 +152,22 @@ model Oferta {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  proveedor    Proveedor?         @relation(fields: [proveedorId], references: [id])
-  producto     Producto?          @relation(fields: [productoId], references: [id])
-  aplicaciones OfertaAplicacion[]
+  proveedor        Proveedor?         @relation(fields: [proveedorId], references: [id])
+  producto         Producto?          @relation(fields: [productoId], references: [id])
+  aplicaciones     OfertaAplicacion[]
+  productosOferta  OfertaProducto[]
+}
+
+model OfertaProducto {
+  id         String   @id @default(cuid())
+  ofertaId   String
+  productoId String
+  createdAt  DateTime @default(now())
+
+  oferta   Oferta   @relation(fields: [ofertaId], references: [id], onDelete: Cascade)
+  producto Producto @relation(fields: [productoId], references: [id])
+
+  @@unique([ofertaId, productoId])
 }
 
 model OfertaAplicacion {
