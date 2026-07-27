@@ -222,11 +222,10 @@ router.post('/:id/publicar', requireAdmin, async (req, res) => {
       if (!jsIds.size) continue;
 
       const precioOriginal = Math.round(prod.precioVenta.precio);
-      const precioOferta   = Math.round(precioOriginal * (1 - oferta.descuentoPct / 100));
 
       for (const jsId of jsIds) {
         try {
-          await aplicarPrecioOferta(jsId, precioOferta, precioOriginal);
+          await aplicarPrecioOferta(jsId, oferta.descuentoPct);
           aplicaciones.push({ ofertaId: oferta.id, jumpsellerProductId: jsId, precioOriginal });
         } catch (e) {
           console.error(`[oferta.publicar] sku=${prod.sku} jsId=${jsId} err=${e.message}`);
@@ -263,7 +262,7 @@ router.post('/:id/revertir', requireAdmin, async (req, res) => {
 
     for (const ap of oferta.aplicaciones) {
       try {
-        await revertirPrecioOferta(ap.jumpsellerProductId, ap.precioOriginal);
+        await revertirPrecioOferta(ap.jumpsellerProductId);
         revertidos++;
       } catch (e) {
         console.error(`[oferta.revertir] jsId=${ap.jumpsellerProductId} err=${e.message}`);
