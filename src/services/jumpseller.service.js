@@ -163,22 +163,23 @@ async function marcarPublicados(ids) {
 }
 
 /**
- * Aplica descuento de oferta en JumpSeller usando el campo discount (%).
- * JumpSeller muestra automáticamente: precio tachado + precio con descuento + badge -X% OFF.
+ * Aplica precio de oferta en JumpSeller.
+ * Usa compare_at_price para que JumpSeller muestre el precio original tachado,
+ * el precio con descuento como precio actual, y el badge -X% OFF automáticamente.
  */
-async function aplicarPrecioOferta(jsProductId, descuentoPct) {
+async function aplicarPrecioOferta(jsProductId, precioOferta, precioOriginal) {
   await jsPut(`/products/${jsProductId}.json`, {
-    product: { discount: descuentoPct },
+    product: { price: precioOferta, compare_at_price: precioOriginal },
   });
   await sleep(DELAY);
 }
 
 /**
- * Revierte descuento de oferta: setea discount a 0 en JumpSeller.
+ * Revierte precio de oferta: restaura precio original y quita compare_at_price.
  */
-async function revertirPrecioOferta(jsProductId) {
+async function revertirPrecioOferta(jsProductId, precioOriginal) {
   await jsPut(`/products/${jsProductId}.json`, {
-    product: { discount: 0 },
+    product: { price: precioOriginal, compare_at_price: null },
   });
   await sleep(DELAY);
 }
