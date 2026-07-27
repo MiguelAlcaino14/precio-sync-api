@@ -4,7 +4,7 @@ const multer     = require('multer');
 const rateLimit  = require('express-rate-limit');
 const prisma     = require('../db');
 const { parsearArchivo, detectarTipo } = require('../parsers');
-const { calcularPrecioVenta, recalcularDescuento } = require('../services/markup.service');
+const { calcularPrecioVenta, recalcularDescuento, recalcularCambiosPendientes } = require('../services/markup.service');
 const { construirMapas, normNombre }   = require('../services/jumpseller.service');
 const { requireAdmin } = require('../middleware/auth');
 const { normSku, guardarMapeo } = require('../services/mapeo.service');
@@ -619,6 +619,45 @@ router.post('/reset-drive-todos', requireAdmin, async (req, res) => {
     res.json({ reseteados: count, mensaje: 'El próximo sync de Drive reimportará todos los archivos' });
   } catch (err) {
     console.error('POST /proveedores/reset-drive-todos error:', err);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// POST /api/proveedores/fix-iva-config — elimina factorIVA de todos los configs y recalcula pendientes
+router.post('/fix-iva-config', requireAdmin, async (req, res) => {
+  try {
+    const proveedores = await prisma.proveedor.findMany();
+    const actualizados = [];
+
+    for (const prov of proveedores) {
+      const config = prov.config || {};
+      let modificado = false;
+
+      if ('factorIVA' in config) {
+        delete config.factorIVA;
+        modificado = true;
+      }
+
+      if (Array.isArray(config.configs)) {
+        for (const cfg of config.configs) {
+          if ('factorIVA' in cfg) {
+            delete cfg.factorIVA;
+            modificado = true;
+          }
+        }
+      }
+
+      if (modificado) {
+        await prisma.proveedor.update({ where: { id: prov.id }, data: { config } });
+        actualizados.push(prov.nombre);
+      }
+    }
+
+    await recalcularCambiosPendientes(null);
+
+    res.json({ actualizados, recalculados: true });
+  } catch (err) {
+    console.error('POST /proveedores/fix-iva-config error:', err);
     res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
