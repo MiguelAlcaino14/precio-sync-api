@@ -220,7 +220,10 @@ router.put('/:id', requireAdmin, async (req, res) => {
       if (JSON.stringify(config).length > 10_000) {
         return res.status(400).json({ error: 'Config demasiado grande (máx 10.000 caracteres)' });
       }
-      data.config = config;
+      // No sobreescribir config existente con objeto vacío (UI envía {} cuando no se tocan los campos)
+      if (Object.keys(config).length > 0) {
+        data.config = config;
+      }
     }
 
     if (activo !== undefined) {
