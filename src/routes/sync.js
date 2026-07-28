@@ -114,6 +114,39 @@ router.post('/jumpseller', requireAdmin, syncLimiter, async (req, res) => {
   }
 });
 
+// POST /api/sync/limpiar-duplicados
+// Deja solo el CambioPendiente más reciente por producto en estado 'aprobado'.
+// Usar para limpiar duplicados generados por llamadas múltiples a recalcular-precios.
+router.post('/limpiar-duplicados', requireAdmin, async (req, res) => {
+  try {
+    const aprobados = await prisma.cambioPendiente.findMany({
+      where:   { estado: 'aprobado' },
+      orderBy: { createdAt: 'desc' },
+      select:  { id: true, productoId: true },
+    });
+
+    const vistos  = new Set();
+    const eliminar = [];
+    for (const c of aprobados) {
+      if (vistos.has(c.productoId)) {
+        eliminar.push(c.id);
+      } else {
+        vistos.add(c.productoId);
+      }
+    }
+
+    if (eliminar.length) {
+      await prisma.cambioPendiente.deleteMany({ where: { id: { in: eliminar } } });
+    }
+
+    console.log(`[sync/limpiar-duplicados] eliminados=${eliminar.length} restantes=${vistos.size}`);
+    res.json({ eliminados: eliminar.length, aprobadosRestantes: vistos.size });
+  } catch (err) {
+    console.error('[sync/limpiar-duplicados] error:', err.message);
+    res.status(500).json({ error: 'Error al limpiar duplicados' });
+  }
+});
+
 // POST /api/sync/recalcular-precios
 // Recalcula precios de TODOS los productos con la fórmula activa y crea CambioPendiente aprobados.
 // Optimizado: carga productos + reglas en 2 queries, calcula en memoria, escribe en bulk.
@@ -172,9 +205,9 @@ router.post('/recalcular-precios', requireAdmin, async (req, res) => {
     if (conCambio.length) {
       const ids = conCambio.map(x => x.producto.id);
 
-      // Marcar pendientes anteriores como reemplazados (1 query)
+      // Marcar pendientes y aprobados anteriores como reemplazados (1 query)
       await prisma.cambioPendiente.updateMany({
-        where: { productoId: { in: ids }, estado: 'pendiente' },
+        where: { productoId: { in: ids }, estado: { in: ['pendiente', 'aprobado'] } },
         data:  { estado: 'reemplazado' },
       });
 
