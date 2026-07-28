@@ -34,8 +34,8 @@ async function calcularPrecioVenta(sku, costo, proveedorId) {
     return { precio, markupPct: regla.markupPct, reglaId: regla.id };
   }
 
-  // Sin regla coincidente: markup por defecto 45%
-  return { precio: Math.ceil((costo * 1.45) / 10) * 10, markupPct: 45, reglaId: null };
+  // Sin regla coincidente: markup por defecto 31%
+  return { precio: Math.ceil((costo * 1.31) / 10) * 10, markupPct: 31, reglaId: null };
 }
 
 /**
