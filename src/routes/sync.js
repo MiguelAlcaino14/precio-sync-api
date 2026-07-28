@@ -114,6 +114,40 @@ router.post('/jumpseller', requireAdmin, syncLimiter, async (req, res) => {
   }
 });
 
+// POST /api/sync/revertir-recalculo
+// Elimina CambioPendiente aprobados y PrecioVenta creados incorrectamente para
+// productos que nunca fueron publicados a JumpSeller (sin historial 'publicado').
+router.post('/revertir-recalculo', requireAdmin, async (req, res) => {
+  try {
+    // Productos con al menos un cambio publicado → tenían precio legítimo
+    const publicados = await prisma.cambioPendiente.findMany({
+      where:  { estado: 'publicado' },
+      select: { productoId: true },
+      distinct: ['productoId'],
+    });
+    const idsLegitimos = publicados.map(c => c.productoId);
+
+    // Eliminar aprobados de productos que NUNCA fueron publicados
+    const { count: cambiosEliminados } = await prisma.cambioPendiente.deleteMany({
+      where: {
+        estado:     'aprobado',
+        productoId: { notIn: idsLegitimos },
+      },
+    });
+
+    // Eliminar PrecioVenta creados incorrectamente para esos mismos productos
+    const { count: preciosEliminados } = await prisma.precioVenta.deleteMany({
+      where: { productoId: { notIn: idsLegitimos } },
+    });
+
+    console.log(`[sync/revertir-recalculo] cambios=${cambiosEliminados} precios=${preciosEliminados} intactos=${idsLegitimos.length}`);
+    res.json({ cambiosEliminados, preciosEliminados, productosIntactos: idsLegitimos.length });
+  } catch (err) {
+    console.error('[sync/revertir-recalculo] error:', err.message);
+    res.status(500).json({ error: 'Error al revertir recálculo' });
+  }
+});
+
 // POST /api/sync/limpiar-duplicados
 // Deja solo el CambioPendiente más reciente por producto en estado 'aprobado'.
 // Usar para limpiar duplicados generados por llamadas múltiples a recalcular-precios.
@@ -148,12 +182,13 @@ router.post('/limpiar-duplicados', requireAdmin, async (req, res) => {
 });
 
 // POST /api/sync/recalcular-precios
-// Recalcula precios de TODOS los productos con la fórmula activa y crea CambioPendiente aprobados.
+// Recalcula precios de productos que YA TIENEN precio publicado en JumpSeller.
 // Optimizado: carga productos + reglas en 2 queries, calcula en memoria, escribe en bulk.
 router.post('/recalcular-precios', requireAdmin, async (req, res) => {
   try {
     const [productos, reglas] = await Promise.all([
       prisma.producto.findMany({
+        where: { precioVenta: { isNot: null } }, // solo productos ya publicados
         include: {
           costos:      { orderBy: { createdAt: 'desc' }, take: 1 },
           precioVenta: true,
