@@ -127,6 +127,30 @@ router.get('/buscar-jumpseller', async (req, res) => {
   }
 });
 
+// GET /api/mapeo/producto-js/:productId — busca en cache de JumpSeller por ID numérico
+router.get('/producto-js/:productId', async (req, res) => {
+  try {
+    const productId = parseInt(req.params.productId, 10);
+    if (isNaN(productId) || productId <= 0) return res.status(400).json({ error: 'productId inválido' });
+    const mapa = await getMapaJS();
+    const seen = new Set();
+    let encontrado = null;
+    for (const entry of Object.values(mapa.mapaSku)) {
+      if (entry.productId === productId && !seen.has(entry.productId)) { encontrado = entry; break; }
+    }
+    if (!encontrado) {
+      for (const entry of Object.values(mapa.mapaNombre)) {
+        if (entry.productId === productId && !seen.has(entry.productId)) { encontrado = entry; break; }
+      }
+    }
+    if (!encontrado) return res.status(404).json({ error: 'Producto no encontrado en JumpSeller' });
+    res.json({ productId: encontrado.productId, nombre: encontrado.nombre, sku: encontrado.sku });
+  } catch (err) {
+    console.error('GET /mapeo/producto-js error:', err);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
 // GET /api/mapeo/stats
 router.get('/stats', async (req, res) => {
   try {
