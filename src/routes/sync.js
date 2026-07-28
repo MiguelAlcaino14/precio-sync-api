@@ -2,6 +2,7 @@ const express    = require('express');
 const rateLimit  = require('express-rate-limit');
 const prisma     = require('../db');
 const { requireAdmin } = require('../middleware/auth');
+const { calcularPrecioVenta } = require('../services/markup.service');
 
 const router = express.Router();
 
@@ -111,6 +112,65 @@ router.post('/jumpseller', requireAdmin, syncLimiter, async (req, res) => {
   } catch (err) {
     console.error('[sync/jumpseller] error:', err.message);
     res.status(500).json({ error: 'Error al sincronizar con JumpSeller' });
+  }
+});
+
+// POST /api/sync/recalcular-precios
+// Recalcula precios de TODOS los productos con la fórmula activa y crea CambioPendiente aprobados
+router.post('/recalcular-precios', requireAdmin, async (req, res) => {
+  try {
+    const productos = await prisma.producto.findMany({
+      include: {
+        costos:      { orderBy: { createdAt: 'desc' }, take: 1 },
+        precioVenta: true,
+      },
+    });
+
+    let recalculados = 0, sinCambio = 0, sinCosto = 0;
+
+    for (const producto of productos) {
+      const ultimoCosto = producto.costos[0];
+      if (!ultimoCosto) { sinCosto++; continue; }
+
+      const { precio: precioNuevo } = await calcularPrecioVenta(
+        producto.sku, ultimoCosto.costo, producto.proveedorId,
+      );
+
+      const precioActual = producto.precioVenta?.precio ?? null;
+      if (precioActual === precioNuevo) { sinCambio++; continue; }
+
+      await prisma.cambioPendiente.updateMany({
+        where: { productoId: producto.id, estado: 'pendiente' },
+        data:  { estado: 'reemplazado' },
+      });
+
+      await prisma.cambioPendiente.create({
+        data: {
+          productoId:    producto.id,
+          costoAnterior: ultimoCosto.costo,
+          costoNuevo:    ultimoCosto.costo,
+          precioActual,
+          precioSugerido: precioNuevo,
+          estado:         'aprobado',
+          aprobadoAt:     new Date(),
+          archivoId:      ultimoCosto.archivoId ?? null,
+        },
+      });
+
+      await prisma.precioVenta.upsert({
+        where:  { productoId: producto.id },
+        update: { precio: precioNuevo, updatedAt: new Date() },
+        create: { productoId: producto.id, precio: precioNuevo },
+      });
+
+      recalculados++;
+    }
+
+    console.log(`[sync/recalcular-precios] total=${productos.length} recalculados=${recalculados} sinCambio=${sinCambio} sinCosto=${sinCosto}`);
+    res.json({ total: productos.length, recalculados, sinCambio, sinCosto });
+  } catch (err) {
+    console.error('[sync/recalcular-precios] error:', err.message);
+    res.status(500).json({ error: 'Error al recalcular precios' });
   }
 });
 

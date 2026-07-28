@@ -30,12 +30,12 @@ async function calcularPrecioVenta(sku, costo, proveedorId) {
     if (regla.costoMin != null && costo < regla.costoMin) continue;
     if (regla.costoMax != null && costo > regla.costoMax) continue;
 
-    const precio = Math.ceil((costo * (1 + regla.markupPct / 100) * 1.19) / 10) * 10;
+    const precio = Math.ceil((costo * (1 + regla.markupPct / 100)) / 10) * 10;
     return { precio, markupPct: regla.markupPct, reglaId: regla.id };
   }
 
   // Sin regla coincidente: markup por defecto 45%
-  return { precio: Math.ceil((costo * 1.45 * 1.19) / 10) * 10, markupPct: 45, reglaId: null };
+  return { precio: Math.ceil((costo * 1.45) / 10) * 10, markupPct: 45, reglaId: null };
 }
 
 /**
