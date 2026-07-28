@@ -2,7 +2,6 @@ const express    = require('express');
 const rateLimit  = require('express-rate-limit');
 const prisma     = require('../db');
 const { requireAdmin } = require('../middleware/auth');
-const { calcularPrecioVenta } = require('../services/markup.service');
 
 const router = express.Router();
 
@@ -116,56 +115,96 @@ router.post('/jumpseller', requireAdmin, syncLimiter, async (req, res) => {
 });
 
 // POST /api/sync/recalcular-precios
-// Recalcula precios de TODOS los productos con la fórmula activa y crea CambioPendiente aprobados
+// Recalcula precios de TODOS los productos con la fórmula activa y crea CambioPendiente aprobados.
+// Optimizado: carga productos + reglas en 2 queries, calcula en memoria, escribe en bulk.
 router.post('/recalcular-precios', requireAdmin, async (req, res) => {
   try {
-    const productos = await prisma.producto.findMany({
-      include: {
-        costos:      { orderBy: { createdAt: 'desc' }, take: 1 },
-        precioVenta: true,
-      },
+    const [productos, reglas] = await Promise.all([
+      prisma.producto.findMany({
+        include: {
+          costos:      { orderBy: { createdAt: 'desc' }, take: 1 },
+          precioVenta: true,
+        },
+      }),
+      prisma.reglaMarkup.findMany({
+        where: { activa: true },
+        orderBy: { prioridad: 'desc' },
+      }),
+    ]);
+
+    // Mismo orden que markup.service.js: SKU específico primero, luego prioridad
+    reglas.sort((a, b) => {
+      const aHasSku = a.sku ? 1 : 0;
+      const bHasSku = b.sku ? 1 : 0;
+      if (bHasSku !== aHasSku) return bHasSku - aHasSku;
+      return b.prioridad - a.prioridad;
     });
 
-    let recalculados = 0, sinCambio = 0, sinCosto = 0;
+    function calcularPrecio(producto, costo) {
+      for (const r of reglas) {
+        if (r.proveedorId && r.proveedorId !== producto.proveedorId) continue;
+        if (r.sku         && r.sku         !== producto.sku)          continue;
+        if (r.marca       && r.marca       !== producto.marca)        continue;
+        if (r.categoria   && r.categoria   !== producto.categoria)    continue;
+        if (r.nombreContiene && !producto.nombre?.toLowerCase().includes(r.nombreContiene.toLowerCase())) continue;
+        if (r.costoMin != null && costo < r.costoMin) continue;
+        if (r.costoMax != null && costo > r.costoMax) continue;
+        return Math.ceil((costo * (1 + r.markupPct / 100)) / 10) * 10;
+      }
+      return Math.ceil((costo * 1.31) / 10) * 10;
+    }
+
+    const ahora     = new Date();
+    const conCambio = [];
+    let sinCambio   = 0, sinCosto = 0;
 
     for (const producto of productos) {
       const ultimoCosto = producto.costos[0];
       if (!ultimoCosto) { sinCosto++; continue; }
 
-      const { precio: precioNuevo } = await calcularPrecioVenta(
-        producto.sku, ultimoCosto.costo, producto.proveedorId,
-      );
-
+      const precioNuevo  = calcularPrecio(producto, ultimoCosto.costo);
       const precioActual = producto.precioVenta?.precio ?? null;
       if (precioActual === precioNuevo) { sinCambio++; continue; }
 
+      conCambio.push({ producto, ultimoCosto, precioNuevo, precioActual });
+    }
+
+    if (conCambio.length) {
+      const ids = conCambio.map(x => x.producto.id);
+
+      // Marcar pendientes anteriores como reemplazados (1 query)
       await prisma.cambioPendiente.updateMany({
-        where: { productoId: producto.id, estado: 'pendiente' },
+        where: { productoId: { in: ids }, estado: 'pendiente' },
         data:  { estado: 'reemplazado' },
       });
 
-      await prisma.cambioPendiente.create({
-        data: {
+      // Insertar nuevos cambios en bulk (1 query)
+      await prisma.cambioPendiente.createMany({
+        data: conCambio.map(({ producto, ultimoCosto, precioNuevo, precioActual }) => ({
           productoId:    producto.id,
           costoAnterior: ultimoCosto.costo,
           costoNuevo:    ultimoCosto.costo,
           precioActual,
           precioSugerido: precioNuevo,
           estado:         'aprobado',
-          aprobadoAt:     new Date(),
+          aprobadoAt:     ahora,
           archivoId:      ultimoCosto.archivoId ?? null,
-        },
+        })),
       });
 
-      await prisma.precioVenta.upsert({
-        where:  { productoId: producto.id },
-        update: { precio: precioNuevo, updatedAt: new Date() },
-        create: { productoId: producto.id, precio: precioNuevo },
-      });
-
-      recalculados++;
+      // Upsert PrecioVenta en transacción (1 roundtrip)
+      await prisma.$transaction(
+        conCambio.map(({ producto, precioNuevo }) =>
+          prisma.precioVenta.upsert({
+            where:  { productoId: producto.id },
+            update: { precio: precioNuevo, updatedAt: ahora },
+            create: { productoId: producto.id, precio: precioNuevo },
+          }),
+        ),
+      );
     }
 
+    const recalculados = conCambio.length;
     console.log(`[sync/recalcular-precios] total=${productos.length} recalculados=${recalculados} sinCambio=${sinCambio} sinCosto=${sinCosto}`);
     res.json({ total: productos.length, recalculados, sinCambio, sinCosto });
   } catch (err) {
