@@ -428,26 +428,39 @@ async function procesarArchivo(archivoId, proveedor, buffer, tipo, nombreArchivo
         }
 
         if (!enJS) {
-          // Guardar en MapeoSku como pendiente para revisión manual
-          sinMatch++;
-          sinMatchNombres.push(`${prod.sku} | ${prod.nombre || '(sin nombre)'}`);
-          if (prod.sku) {
-            await guardarMapeo(proveedor.id, prod.sku, null, 'pendiente', null, prod.nombre).catch(() => {});
-          }
-          // Actualizar metadatos (nombre, categoria, etc.) del producto existente aunque no esté en JumpSeller
-          if (prod.sku) {
-            const existente = await prisma.producto.findUnique({ where: { sku: prod.sku } });
-            if (existente) {
-              const upd = {};
-              if (prod.nombre    && !existente.nombre)    upd.nombre    = prod.nombre;
-              if (prod.marca     && !existente.marca)     upd.marca     = prod.marca;
-              if (prod.categoria && CATEGORIAS_VALIDAS.includes(prod.categoria) && !existente.categoria) upd.categoria = prod.categoria;
-              if (prod.unidadesCaja   && !existente.unidadesCaja)   upd.unidadesCaja   = prod.unidadesCaja;
-              if (prod.unidadesPallet && !existente.unidadesPallet) upd.unidadesPallet = prod.unidadesPallet;
-              if (Object.keys(upd).length) await prisma.producto.update({ where: { id: existente.id }, data: upd });
+          // Verificar si el usuario ya confirmó manualmente este SKU en la BD
+          const mapeoConfirmado = prod.sku
+            ? await prisma.mapeoSku.findUnique({
+                where: { proveedorId_skuProveedor: { proveedorId: proveedor.id, skuProveedor: normSku(prod.sku) } },
+                select: { estado: true },
+              })
+            : null;
+
+          if (mapeoConfirmado?.estado === 'confirmado') {
+            // Tiene mapeo confirmado por el usuario → procesar costo normalmente
+            matcheados++;
+          } else {
+            // Sin mapeo confirmado → guardar como pendiente y saltear
+            sinMatch++;
+            sinMatchNombres.push(`${prod.sku} | ${prod.nombre || '(sin nombre)'}`);
+            if (prod.sku) {
+              await guardarMapeo(proveedor.id, prod.sku, null, 'pendiente', null, prod.nombre).catch(() => {});
             }
+            // Actualizar metadatos del producto existente aunque no esté en JumpSeller
+            if (prod.sku) {
+              const existente = await prisma.producto.findUnique({ where: { sku: prod.sku } });
+              if (existente) {
+                const upd = {};
+                if (prod.nombre    && !existente.nombre)    upd.nombre    = prod.nombre;
+                if (prod.marca     && !existente.marca)     upd.marca     = prod.marca;
+                if (prod.categoria && CATEGORIAS_VALIDAS.includes(prod.categoria) && !existente.categoria) upd.categoria = prod.categoria;
+                if (prod.unidadesCaja   && !existente.unidadesCaja)   upd.unidadesCaja   = prod.unidadesCaja;
+                if (prod.unidadesPallet && !existente.unidadesPallet) upd.unidadesPallet = prod.unidadesPallet;
+                if (Object.keys(upd).length) await prisma.producto.update({ where: { id: existente.id }, data: upd });
+              }
+            }
+            continue;
           }
-          continue;
         }
 
         // Match encontrado → guardar/actualizar en MapeoSku como confirmado
