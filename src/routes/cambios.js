@@ -98,6 +98,22 @@ router.post('/limpiar', requireAdmin, async (req, res) => {
   }
 });
 
+// POST /api/cambios/revertir  body: { ids: [...] } — aprobado → pendiente
+router.post('/revertir', requireAdmin, async (req, res) => {
+  try {
+    const { ids } = req.body;
+    if (!ids?.length) return res.status(400).json({ error: 'ids requerido' });
+    const { count } = await prisma.cambioPendiente.updateMany({
+      where: { id: { in: ids }, estado: 'aprobado' },
+      data:  { estado: 'pendiente', aprobadoAt: null },
+    });
+    res.json({ revertidos: count });
+  } catch (err) {
+    console.error('POST /cambios/revertir error:', err);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
 // GET /api/cambios/resumen  — cuántos pendientes por proveedor
 router.get('/resumen', async (req, res) => {
   try {

@@ -281,4 +281,57 @@ router.post('/recalcular-precios', requireAdmin, async (req, res) => {
   }
 });
 
+// POST /api/sync/forzar-precio  body: { productoId, precio }
+// Permite editar manualmente el precio de venta de un producto ya publicado.
+// Crea un CambioPendiente con estado 'aprobado' listo para publicar en JumpSeller.
+router.post('/forzar-precio', requireAdmin, async (req, res) => {
+  try {
+    const { productoId, precio } = req.body;
+    if (!productoId) return res.status(400).json({ error: 'productoId requerido' });
+    const p = Number(precio);
+    if (isNaN(p) || p <= 0 || p > 99_999_999) return res.status(400).json({ error: 'precio inválido' });
+
+    const producto = await prisma.producto.findUnique({
+      where:   { id: productoId },
+      include: { costos: { orderBy: { createdAt: 'desc' }, take: 1 }, precioVenta: true },
+    });
+    if (!producto) return res.status(404).json({ error: 'Producto no encontrado' });
+
+    const precioActual = producto.precioVenta?.precio ?? null;
+    const ultimoCosto  = producto.costos[0];
+
+    // Reemplazar pendientes/aprobados anteriores
+    await prisma.cambioPendiente.updateMany({
+      where: { productoId, estado: { in: ['pendiente', 'aprobado'] } },
+      data:  { estado: 'reemplazado' },
+    });
+
+    // Actualizar PrecioVenta
+    await prisma.precioVenta.upsert({
+      where:  { productoId },
+      update: { precio: p, updatedAt: new Date() },
+      create: { productoId, precio: p },
+    });
+
+    // Crear CambioPendiente aprobado
+    const cambio = await prisma.cambioPendiente.create({
+      data: {
+        productoId,
+        costoAnterior:  ultimoCosto?.costo ?? null,
+        costoNuevo:     ultimoCosto?.costo ?? 0,
+        precioActual,
+        precioSugerido: p,
+        archivoId:      ultimoCosto?.archivoId ?? null,
+        estado:         'aprobado',
+        aprobadoAt:     new Date(),
+      },
+    });
+
+    res.json({ cambioId: cambio.id, precio: p });
+  } catch (err) {
+    console.error('POST /sync/forzar-precio error:', err.message);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
 module.exports = router;
