@@ -2,6 +2,8 @@ const express    = require('express');
 const rateLimit  = require('express-rate-limit');
 const prisma     = require('../db');
 const { requireAdmin } = require('../middleware/auth');
+const { sleep, authQuery, normNombre } = require('../services/jumpseller.service');
+const { calcularPrecioConReglas, sortReglas } = require('../services/markup.service');
 
 const router = express.Router();
 
@@ -17,15 +19,6 @@ const syncLimiter = rateLimit({
   message: { error: 'Sincronización ejecutada recientemente, espera 5 minutos' },
 });
 
-function authQuery() {
-  const login = process.env.JUMPSELLER_LOGIN;
-  const token = process.env.JUMPSELLER_TOKEN;
-  if (!login || !token) throw new Error('JUMPSELLER_LOGIN y JUMPSELLER_TOKEN no configurados');
-  return `login=${encodeURIComponent(login)}&authtoken=${encodeURIComponent(token)}`;
-}
-
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-
 async function fetchWithTimeout(url) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT);
@@ -35,13 +28,6 @@ async function fetchWithTimeout(url) {
     clearTimeout(timer);
   }
 }
-
-const normNombre = s => String(s || '')
-  .toLowerCase()
-  .normalize('NFD').replace(/[̀-ͯ]/g, '')
-  .replace(/[^\w\s]/g, ' ')
-  .replace(/\s+/g, ' ')
-  .trim();
 
 // POST /api/sync/jumpseller
 // Trae todos los productos de JumpSeller y actualiza PrecioVenta usando MapeoSku confirmado
@@ -200,27 +186,7 @@ router.post('/recalcular-precios', requireAdmin, async (req, res) => {
       }),
     ]);
 
-    // Mismo orden que markup.service.js: SKU específico primero, luego prioridad
-    reglas.sort((a, b) => {
-      const aHasSku = a.sku ? 1 : 0;
-      const bHasSku = b.sku ? 1 : 0;
-      if (bHasSku !== aHasSku) return bHasSku - aHasSku;
-      return b.prioridad - a.prioridad;
-    });
-
-    function calcularPrecio(producto, costo) {
-      for (const r of reglas) {
-        if (r.proveedorId && r.proveedorId !== producto.proveedorId) continue;
-        if (r.sku         && r.sku         !== producto.sku)          continue;
-        if (r.marca       && r.marca       !== producto.marca)        continue;
-        if (r.categoria   && r.categoria   !== producto.categoria)    continue;
-        if (r.nombreContiene && !producto.nombre?.toLowerCase().includes(r.nombreContiene.toLowerCase())) continue;
-        if (r.costoMin != null && costo < r.costoMin) continue;
-        if (r.costoMax != null && costo > r.costoMax) continue;
-        return Math.ceil((costo * (1 + r.markupPct / 100)) / 10) * 10;
-      }
-      return Math.ceil((costo * 1.31) / 10) * 10;
-    }
+    const reglasSorted = sortReglas(reglas);
 
     const ahora     = new Date();
     const conCambio = [];
@@ -228,9 +194,13 @@ router.post('/recalcular-precios', requireAdmin, async (req, res) => {
 
     for (const producto of productos) {
       const ultimoCosto = producto.costos[0];
-      if (!ultimoCosto) { sinCosto++; continue; }
+      if (!ultimoCosto) {
+        sinCosto++;
+        console.warn(`[sync/recalcular-precios] producto ${producto.id} (${producto.sku}) sin costo registrado`);
+        continue;
+      }
 
-      const precioNuevo  = calcularPrecio(producto, ultimoCosto.costo);
+      const { precio: precioNuevo } = calcularPrecioConReglas(ultimoCosto.costo, producto, reglasSorted);
       const precioActual = producto.precioVenta?.precio ?? null;
       if (precioActual === precioNuevo) { sinCambio++; continue; }
 

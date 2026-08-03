@@ -444,7 +444,7 @@ async function procesarArchivo(archivoId, proveedor, buffer, tipo, nombreArchivo
             sinMatch++;
             sinMatchNombres.push(`${prod.sku} | ${prod.nombre || '(sin nombre)'}`);
             if (prod.sku) {
-              await guardarMapeo(proveedor.id, prod.sku, null, 'pendiente', null, prod.nombre).catch(() => {});
+              await guardarMapeo(proveedor.id, prod.sku, null, 'pendiente', null, prod.nombre).catch(err => console.warn('[guardarMapeo pendiente]', err.message));
             }
             // Actualizar metadatos del producto existente aunque no esté en JumpSeller
             if (prod.sku) {
@@ -466,7 +466,7 @@ async function procesarArchivo(archivoId, proveedor, buffer, tipo, nombreArchivo
         // Match encontrado → guardar/actualizar en MapeoSku como confirmado
         matcheados++;
         if (prod.sku && enJS.productId) {
-          await guardarMapeo(proveedor.id, prod.sku, enJS.productId, 'confirmado', simil, prod.nombre).catch(() => {});
+          await guardarMapeo(proveedor.id, prod.sku, enJS.productId, 'confirmado', simil, prod.nombre).catch(err => console.warn('[guardarMapeo confirmado]', err.message));
         }
       }
 

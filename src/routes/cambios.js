@@ -40,26 +40,29 @@ router.post('/aprobar', async (req, res) => {
       include: { producto: true },
     });
 
+    const ahora = new Date();
+    const ops   = [];
+
     for (const cambio of cambios) {
       const precioRaw = preciosVenta[cambio.id] ?? cambio.precioSugerido;
-      if (!precioRaw) continue;
-      const precio = Number(precioRaw);
-      if (isNaN(precio) || precio <= 0 || precio > 99_999_999) continue;
-
-      // Guardar precio de venta
-      await prisma.precioVenta.upsert({
-        where: { productoId: cambio.productoId },
-        update: { precio, updatedAt: new Date() },
-        create: { productoId: cambio.productoId, precio },
-      });
-
-      // Marcar cambio como aprobado
-      await prisma.cambioPendiente.update({
-        where: { id: cambio.id },
-        data: { estado: 'aprobado', precioSugerido: precio, aprobadoAt: new Date() },
-      });
+      const precio    = Number(precioRaw);
+      if (!precioRaw || isNaN(precio) || precio <= 0 || precio > 99_999_999) {
+        return res.status(400).json({ error: `Precio inválido para cambio ${cambio.id}: ${precioRaw}` });
+      }
+      ops.push(
+        prisma.precioVenta.upsert({
+          where:  { productoId: cambio.productoId },
+          update: { precio, updatedAt: ahora },
+          create: { productoId: cambio.productoId, precio },
+        }),
+        prisma.cambioPendiente.update({
+          where: { id: cambio.id },
+          data:  { estado: 'aprobado', precioSugerido: precio, aprobadoAt: ahora },
+        }),
+      );
     }
 
+    await prisma.$transaction(ops);
     res.json({ aprobados: cambios.length });
   } catch (err) {
     console.error('POST /cambios/aprobar error:', err);

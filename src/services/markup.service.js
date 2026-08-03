@@ -1,47 +1,59 @@
 const prisma = require('../db');
 
-/**
- * Calcula el precio de venta sugerido para un producto.
- * Reglas especiales tienen prioridad sobre las de la tabla.
- * Las reglas de la tabla se evalúan en orden de prioridad (mayor = más específico).
- */
-async function calcularPrecioVenta(sku, costo, proveedorId) {
-  const producto = await prisma.producto.findUnique({ where: { sku } });
+const DEFAULT_MARGEN = 31; // margen sobre precio de venta
 
-  const reglas = await prisma.reglaMarkup.findMany({
-    where: { activa: true },
-    orderBy: { prioridad: 'desc' },
-  });
-
-  // Reglas con SKU específico tienen prioridad implícita sobre las generales
-  reglas.sort((a, b) => {
+function sortReglas(reglas) {
+  return [...reglas].sort((a, b) => {
     const aHasSku = a.sku ? 1 : 0;
     const bHasSku = b.sku ? 1 : 0;
     if (bHasSku !== aHasSku) return bHasSku - aHasSku;
     return b.prioridad - a.prioridad;
   });
+}
 
+/**
+ * Calcula precio de venta dado costo, producto y reglas ya cargadas (sin queries).
+ * Útil para procesos batch donde reglas se pre-cargan una sola vez.
+ */
+function calcularPrecioConReglas(costo, producto, reglas) {
   for (const regla of reglas) {
-    if (regla.proveedorId && regla.proveedorId !== proveedorId) continue;
-    if (regla.sku       && regla.sku       !== sku)                 continue;
-    if (regla.marca     && regla.marca     !== producto?.marca)     continue;
-    if (regla.categoria && regla.categoria !== producto?.categoria) continue;
+    if (regla.proveedorId && regla.proveedorId !== producto?.proveedorId) continue;
+    if (regla.sku         && regla.sku         !== producto?.sku)         continue;
+    if (regla.marca       && regla.marca       !== producto?.marca)       continue;
+    if (regla.categoria   && regla.categoria   !== producto?.categoria)   continue;
     if (regla.nombreContiene && !producto?.nombre?.toLowerCase().includes(regla.nombreContiene.toLowerCase())) continue;
     if (regla.costoMin != null && costo < regla.costoMin) continue;
     if (regla.costoMax != null && costo > regla.costoMax) continue;
 
-    const precio = Math.ceil((costo * (1 + regla.markupPct / 100)) / 10) * 10;
-    return { precio, markupPct: regla.markupPct, reglaId: regla.id };
+    return {
+      precio:    Math.ceil((costo / (1 - regla.markupPct / 100)) / 10) * 10,
+      markupPct: regla.markupPct,
+      reglaId:   regla.id,
+    };
   }
 
-  // Sin regla coincidente: markup por defecto 31%
-  return { precio: Math.ceil((costo * 1.31) / 10) * 10, markupPct: 31, reglaId: null };
+  // Sin regla: margen 31% sobre precio de venta → costo / 0.69
+  return {
+    precio:    Math.ceil((costo / (1 - DEFAULT_MARGEN / 100)) / 10) * 10,
+    markupPct: DEFAULT_MARGEN,
+    reglaId:   null,
+  };
+}
+
+/**
+ * Calcula el precio de venta sugerido para un producto (carga reglas desde DB).
+ */
+async function calcularPrecioVenta(sku, costo, proveedorId) {
+  const [producto, reglas] = await Promise.all([
+    prisma.producto.findUnique({ where: { sku } }),
+    prisma.reglaMarkup.findMany({ where: { activa: true }, orderBy: { prioridad: 'desc' } }),
+  ]);
+
+  return calcularPrecioConReglas(costo, producto ?? { sku, proveedorId }, sortReglas(reglas));
 }
 
 /**
  * Recalcula los costos de los productos de un proveedor cuando cambia su descuento base.
- * Genera un CambioPendiente por cada producto cuyo precio sugerido cambie.
- * Usado por el panel (PUT /proveedores/:id) y por el seed (descuentos base).
  */
 async function recalcularDescuento(proveedorId, oldDescuento, newDescuento) {
   console.log(`[recalcularDescuento] proveedorId=${proveedorId} old=${oldDescuento}% new=${newDescuento}%`);
@@ -58,7 +70,6 @@ async function recalcularDescuento(proveedorId, oldDescuento, newDescuento) {
     const ultimoCosto = producto.costos[0];
     if (!ultimoCosto) continue;
 
-    // costoOriginal guardado, o revertir manualmente si hay descuento anterior
     const costoOriginal = ultimoCosto.costoOriginal != null
       ? ultimoCosto.costoOriginal
       : (oldDescuento > 0
@@ -118,4 +129,10 @@ async function recalcularCambiosPendientes(proveedorId) {
   }
 }
 
-module.exports = { calcularPrecioVenta, recalcularDescuento, recalcularCambiosPendientes };
+module.exports = {
+  calcularPrecioVenta,
+  calcularPrecioConReglas,
+  sortReglas,
+  recalcularDescuento,
+  recalcularCambiosPendientes,
+};

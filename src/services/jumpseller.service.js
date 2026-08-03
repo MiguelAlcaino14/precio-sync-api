@@ -184,4 +184,4 @@ async function revertirPrecioOferta(jsProductId, precioOriginal) {
   await sleep(DELAY);
 }
 
-module.exports = { publicarPrecios, generarCSVImport, marcarPublicados, construirMapas, normNombre, aplicarPrecioOferta, revertirPrecioOferta };
+module.exports = { publicarPrecios, generarCSVImport, marcarPublicados, construirMapas, normNombre, sleep, authQuery, aplicarPrecioOferta, revertirPrecioOferta };

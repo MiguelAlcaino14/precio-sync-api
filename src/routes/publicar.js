@@ -30,7 +30,10 @@ router.post('/', async (req, res) => {
   const payload = [];
   for (const c of cambios) {
     const precioBase = precioMap[c.productoId] ?? c.precioSugerido;
-    if (precioBase == null) continue;
+    if (!precioBase || precioBase <= 0) {
+      console.error(`[publicar] precio inválido para producto ${c.productoId}: ${precioBase}`);
+      continue;
+    }
 
     const { precioFinal, oferta } = await aplicarOferta(c.producto, precioBase);
 
