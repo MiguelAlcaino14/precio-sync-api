@@ -2,20 +2,10 @@ const XLSX              = require('xlsx');
 const OpenAI            = require('openai');
 const prisma            = require('../db');
 const { esperarTurno }  = require('../services/ia-limiter');
+const { sleep, listarProductosJumpseller } = require('../services/jumpseller.service');
 
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 const MAX_REINTENTOS = 2;
-const BASE_JS = 'https://api.jumpseller.com/v1';
-const DELAY   = 650;
-
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-
-function authQuery() {
-  const login = process.env.JUMPSELLER_LOGIN;
-  const token = process.env.JUMPSELLER_TOKEN;
-  if (!login || !token) throw new Error('JUMPSELLER_LOGIN y JUMPSELLER_TOKEN no configurados');
-  return `login=${encodeURIComponent(login)}&authtoken=${encodeURIComponent(token)}`;
-}
 
 /**
  * Extrae productos del Excel de ENGATEL.
@@ -42,31 +32,6 @@ function extraerProductosExcel(buffer) {
     productos.push({ nombre, costo: Math.round(precio) });
   }
   return productos;
-}
-
-/**
- * Trae todos los productos de JumpSeller (paginado).
- * Retorna array de { id, sku, nombre }.
- */
-async function traerProductosJumpseller() {
-  const todos = [];
-  let page = 1;
-  const limit = 100;
-
-  while (true) {
-    const url = `${BASE_JS}/products.json?${authQuery()}&limit=${limit}&page=${page}`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`JumpSeller ${res.status} GET /products.json`);
-    const data = await res.json();
-    if (!Array.isArray(data) || data.length === 0) break;
-    for (const p of data) {
-      todos.push({ id: p.id, sku: String(p.sku || '').trim(), nombre: String(p.name || '').trim() });
-    }
-    if (data.length < limit) break;
-    page++;
-    await sleep(DELAY);
-  }
-  return todos;
 }
 
 /**
@@ -147,7 +112,7 @@ async function parsearEngatel(buffer) {
   // Si hay productos sin mapping, hacer el matching con IA
   if (sinMapping.length > 0) {
     console.log(`[ENGATEL] ${sinMapping.length} productos sin mapping → iniciando matching con IA`);
-    const productosJS = await traerProductosJumpseller();
+    const productosJS = await listarProductosJumpseller();
     const matches = await matchConIA(sinMapping, productosJS);
 
     // Guardar nuevos mappings en DB

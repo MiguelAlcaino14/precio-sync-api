@@ -184,4 +184,26 @@ async function revertirPrecioOferta(jsProductId, precioOriginal) {
   await sleep(DELAY);
 }
 
-module.exports = { publicarPrecios, generarCSVImport, marcarPublicados, construirMapas, normNombre, sleep, authQuery, aplicarPrecioOferta, revertirPrecioOferta };
+/**
+ * Lista todos los productos de JumpSeller como array plano {id, sku, nombre}.
+ * Usado por parsers que necesitan la lista completa para matching con IA.
+ */
+async function listarProductosJumpseller() {
+  const todos = [];
+  let page = 1;
+  const limit = 100;
+  while (true) {
+    const products = await jsGet('/products.json', `limit=${limit}&page=${page}`);
+    if (!Array.isArray(products) || products.length === 0) break;
+    for (const p of products) {
+      const prod = p.product ?? p;
+      todos.push({ id: prod.id, sku: String(prod.sku || '').trim(), nombre: String(prod.name || '').trim() });
+    }
+    if (products.length < limit) break;
+    page++;
+    await sleep(DELAY);
+  }
+  return todos;
+}
+
+module.exports = { publicarPrecios, generarCSVImport, marcarPublicados, construirMapas, normNombre, sleep, authQuery, listarProductosJumpseller, aplicarPrecioOferta, revertirPrecioOferta };

@@ -2,20 +2,10 @@ const mammoth           = require('mammoth');
 const OpenAI            = require('openai');
 const prisma            = require('../db');
 const { esperarTurno }  = require('../services/ia-limiter');
+const { sleep, listarProductosJumpseller } = require('../services/jumpseller.service');
 
-const BASE_JS        = 'https://api.jumpseller.com/v1';
-const DELAY          = 650;
 const SLUG           = 'scai';
 const MAX_REINTENTOS = 2;
-
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-
-function authQuery() {
-  const login = process.env.JUMPSELLER_LOGIN;
-  const token = process.env.JUMPSELLER_TOKEN;
-  if (!login || !token) throw new Error('JUMPSELLER_LOGIN y JUMPSELLER_TOKEN no configurados');
-  return `login=${encodeURIComponent(login)}&authtoken=${encodeURIComponent(token)}`;
-}
 
 /**
  * Extrae texto del .docx y parsea bloques de 6 líneas por producto.
@@ -69,34 +59,6 @@ async function extraerProductosDocx(buffer) {
   }
 
   return productos;
-}
-
-/**
- * Trae todos los productos de JumpSeller (paginado).
- */
-async function traerProductosJumpseller() {
-  const todos = [];
-  let page = 1;
-  const limit = 100;
-
-  while (true) {
-    const url = `${BASE_JS}/products.json?${authQuery()}&limit=${limit}&page=${page}`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`JumpSeller ${res.status} GET /products.json`);
-    const data = await res.json();
-    if (!Array.isArray(data) || data.length === 0) break;
-    for (const p of data) {
-      todos.push({
-        id:     p.id,
-        sku:    String(p.sku || '').trim(),
-        nombre: String(p.name || '').trim(),
-      });
-    }
-    if (data.length < limit) break;
-    page++;
-    await sleep(DELAY);
-  }
-  return todos;
 }
 
 /**
@@ -187,7 +149,7 @@ async function parsearScai(buffer, proveedorSlug) {
   // Matching con IA para los productos sin mapping
   if (sinMapping.length > 0) {
     console.log(`[SCAI] ${sinMapping.length} productos sin mapping → iniciando matching con IA`);
-    const productosJS = await traerProductosJumpseller();
+    const productosJS = await listarProductosJumpseller();
     const matches = await matchConIA(sinMapping, productosJS);
 
     for (const m of matches) {

@@ -4,7 +4,7 @@ const multer     = require('multer');
 const rateLimit  = require('express-rate-limit');
 const prisma     = require('../db');
 const { parsearArchivo, detectarTipo } = require('../parsers');
-const { calcularPrecioVenta, recalcularDescuento, recalcularCambiosPendientes } = require('../services/markup.service');
+const { calcularPrecioVenta, calcularPrecioConReglas, sortReglas, recalcularDescuento, recalcularCambiosPendientes } = require('../services/markup.service');
 const { construirMapas, normNombre }   = require('../services/jumpseller.service');
 const { requireAdmin } = require('../middleware/auth');
 const { normSku, guardarMapeo } = require('../services/mapeo.service');
@@ -410,6 +410,10 @@ async function procesarArchivo(archivoId, proveedor, buffer, tipo, nombreArchivo
     const factorDescuento = 1 - (proveedor.descuento ?? 0) / 100;
     const CATEGORIAS_VALIDAS = ['unidad', 'caja', 'pallet'];
 
+    // Pre-cargar reglas una vez para evitar N queries en el loop de productos
+    const _reglasCargadas = await prisma.reglaMarkup.findMany({ where: { activa: true }, orderBy: { prioridad: 'desc' } });
+    const _reglasSorted   = sortReglas(_reglasCargadas);
+
     let matcheados     = 0;
     let sinMatch       = 0;
     let cambiosCreados = 0;
@@ -512,7 +516,7 @@ async function procesarArchivo(archivoId, proveedor, buffer, tipo, nombreArchivo
       });
 
       const precioVentaActual = await prisma.precioVenta.findUnique({ where: { productoId: producto.id } });
-      const { precio: precioSugerido } = await calcularPrecioVenta(prod.sku, prod.costo, proveedor.id);
+      const { precio: precioSugerido } = calcularPrecioConReglas(prod.costo, producto, _reglasSorted);
 
       const costoAnteriorValor  = costoAnterior?.costo ?? null;
       const cambioSignificativo = !precioVentaActual || precioSugerido !== precioVentaActual.precio;
