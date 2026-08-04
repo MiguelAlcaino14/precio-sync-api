@@ -43,4 +43,15 @@ async function aplicarOferta(producto, precioBase) {
   return { precioFinal, oferta };
 }
 
-module.exports = { obtenerOfertaActiva, aplicarOferta };
+/**
+ * Desactiva automáticamente las ofertas cuya fechaFin ya pasó.
+ */
+async function desactivarOfertasVencidas() {
+  const { count } = await prisma.oferta.updateMany({
+    where: { activa: true, fechaFin: { lt: new Date() } },
+    data:  { activa: false },
+  });
+  if (count > 0) console.log(`[ofertas] ${count} oferta(s) vencida(s) desactivada(s)`);
+}
+
+module.exports = { obtenerOfertaActiva, aplicarOferta, desactivarOfertasVencidas };

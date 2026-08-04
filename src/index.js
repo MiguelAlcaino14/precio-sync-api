@@ -14,6 +14,7 @@ for (const key of requiredEnvs) {
 }
 
 const prisma                = require('./db');
+const { desactivarOfertasVencidas } = require('./services/ofertas.service');
 const authMiddleware        = require('./middleware/auth');
 const authRouter            = require('./routes/auth');
 const proveedoresRouter     = require('./routes/proveedores');
@@ -92,4 +93,6 @@ app.use((err, req, res, next) => {
 
 app.listen(PORT, () => {
   console.log(`API corriendo en http://localhost:${PORT}`);
+  desactivarOfertasVencidas();
+  setInterval(desactivarOfertasVencidas, 60 * 60 * 1000); // cada hora
 });
