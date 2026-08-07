@@ -68,7 +68,7 @@ function parsearRommel(buffer, config = {}) {
       productos.push({
         sku,
         nombre,
-        marca:     'Rommel',
+        marca:     null,
         barras:    null,
         costo:     Math.round(costo * 100) / 100,
         categoria: 'unidad',

@@ -479,7 +479,7 @@ async function procesarArchivo(archivoId, proveedor, buffer, tipo, nombreArchivo
         if (!mapaJS) matcheados++;
         const updates = {};
         if (prod.nombre         && !producto.nombre)         updates.nombre         = prod.nombre;
-        if (prod.marca          && !producto.marca)          updates.marca          = prod.marca;
+        if ('marca' in prod && prod.marca !== producto.marca) updates.marca          = prod.marca ?? null;
         if (prod.categoria && CATEGORIAS_VALIDAS.includes(prod.categoria) && !producto.categoria) updates.categoria = prod.categoria;
         if (prod.unidadesCaja   && !producto.unidadesCaja)   updates.unidadesCaja   = prod.unidadesCaja;
         if (prod.unidadesPallet && !producto.unidadesPallet) updates.unidadesPallet = prod.unidadesPallet;
