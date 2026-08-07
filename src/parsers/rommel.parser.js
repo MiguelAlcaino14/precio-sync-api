@@ -70,7 +70,7 @@ function parsearRommel(buffer, config = {}) {
         nombre,
         marca:     'Rommel',
         barras:    null,
-        costo:     Math.ceil(costo / 10) * 10,
+        costo:     Math.round(costo * 100) / 100,
         categoria: 'unidad',
       });
     }

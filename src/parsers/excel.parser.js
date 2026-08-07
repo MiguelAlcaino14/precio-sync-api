@@ -110,7 +110,7 @@ function parsearExcelConConfig(buffer, config) {
       nombre:        String(f[iNombre] || '').trim(),
       marca:         iMarca  >= 0 ? String(f[iMarca]  || '').trim() : null,
       barras:        iBarras >= 0 ? String(f[iBarras] || '').trim() : null,
-      costo:         Math.ceil(costo / 10) * 10,
+      costo:         Math.round(costo * 100) / 100,
       unidadesCaja,
       unidadesPallet,
       categoria:     unidadesCaja > 1 ? 'caja' : 'unidad',
