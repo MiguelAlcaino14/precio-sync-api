@@ -441,36 +441,21 @@ async function procesarArchivo(archivoId, proveedor, buffer, tipo, nombreArchivo
             : null;
 
           if (mapeoConfirmado?.estado === 'confirmado') {
-            // Tiene mapeo confirmado por el usuario → procesar costo normalmente
             matcheados++;
           } else {
-            // Sin mapeo confirmado → guardar como pendiente y saltear
+            // Sin match en JumpSeller → registrar como pendiente pero igual registrar costo/precio
             sinMatch++;
             sinMatchNombres.push(`${prod.sku} | ${prod.nombre || '(sin nombre)'}`);
             if (prod.sku) {
               await guardarMapeo(proveedor.id, prod.sku, null, 'pendiente', null, prod.nombre).catch(err => console.warn('[guardarMapeo pendiente]', err.message));
             }
-            // Actualizar metadatos del producto existente aunque no esté en JumpSeller
-            if (prod.sku) {
-              const existente = await prisma.producto.findUnique({ where: { sku: prod.sku } });
-              if (existente) {
-                const upd = {};
-                if (prod.nombre    && !existente.nombre)    upd.nombre    = prod.nombre;
-                if (prod.marca     && !existente.marca)     upd.marca     = prod.marca;
-                if (prod.categoria && CATEGORIAS_VALIDAS.includes(prod.categoria) && !existente.categoria) upd.categoria = prod.categoria;
-                if (prod.unidadesCaja   && !existente.unidadesCaja)   upd.unidadesCaja   = prod.unidadesCaja;
-                if (prod.unidadesPallet && !existente.unidadesPallet) upd.unidadesPallet = prod.unidadesPallet;
-                if (Object.keys(upd).length) await prisma.producto.update({ where: { id: existente.id }, data: upd });
-              }
-            }
-            continue;
           }
-        }
-
-        // Match encontrado → guardar/actualizar en MapeoSku como confirmado
-        matcheados++;
-        if (prod.sku && enJS.productId) {
-          await guardarMapeo(proveedor.id, prod.sku, enJS.productId, 'confirmado', simil, prod.nombre).catch(err => console.warn('[guardarMapeo confirmado]', err.message));
+        } else {
+          // Match encontrado → guardar/actualizar en MapeoSku como confirmado
+          matcheados++;
+          if (prod.sku && enJS.productId) {
+            await guardarMapeo(proveedor.id, prod.sku, enJS.productId, 'confirmado', simil, prod.nombre).catch(err => console.warn('[guardarMapeo confirmado]', err.message));
+          }
         }
       }
 
