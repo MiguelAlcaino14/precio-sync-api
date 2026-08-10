@@ -1,5 +1,6 @@
 const express = require('express');
 const prisma  = require('../db');
+const { calcularPrecioConReglas, sortReglas } = require('../services/markup.service');
 
 const router = express.Router();
 
@@ -22,7 +23,7 @@ router.get('/', async (req, res) => {
     if (provId) where.proveedorId = provId;
     if (tema)   where.proveedor   = { tema };
 
-    const [total, rows] = await Promise.all([
+    const [total, rows, reglas] = await Promise.all([
       prisma.producto.count({ where }),
       prisma.producto.findMany({
         where,
@@ -30,32 +31,36 @@ router.get('/', async (req, res) => {
           proveedor:   { select: { id: true, nombre: true, tema: true } },
           costos:      { orderBy: { createdAt: 'desc' }, take: 1, select: { costo: true } },
           precioVenta: { select: { precio: true, markupPct: true } },
-          cambios: {
-            orderBy: { createdAt: 'desc' },
-            take:    1,
-            select:  { precioSugerido: true },
-          },
         },
         orderBy: { nombre: 'asc' },
         skip:    (page - 1) * limit,
         take:    limit,
       }),
+      prisma.reglaMarkup.findMany({ where: { activa: true }, orderBy: { prioridad: 'desc' } }),
     ]);
 
-    const productos = rows.map(p => ({
-      id:             p.id,
-      sku:            p.sku,
-      nombre:         p.nombre,
-      categoria:      p.categoria,
-      unidadesCaja:   p.unidadesCaja,
-      unidadesPallet: p.unidadesPallet,
-      marca:          p.marca,
-      proveedor:      p.proveedor,
-      ultimoCosto:    p.costos[0]?.costo          ?? null,
-      precioJS:       p.precioVenta?.precio        ?? null,
-      precioSugerido: p.cambios[0]?.precioSugerido ?? null,
-      markupPct:      p.precioVenta?.markupPct     ?? null,
-    }));
+    const reglasSorted = sortReglas(reglas);
+
+    const productos = rows.map(p => {
+      const costo = p.costos[0]?.costo ?? null;
+      const { precio: precioSugerido } = costo != null
+        ? calcularPrecioConReglas(costo, p, reglasSorted)
+        : { precio: null };
+      return {
+        id:             p.id,
+        sku:            p.sku,
+        nombre:         p.nombre,
+        categoria:      p.categoria,
+        unidadesCaja:   p.unidadesCaja,
+        unidadesPallet: p.unidadesPallet,
+        marca:          p.marca,
+        proveedor:      p.proveedor,
+        ultimoCosto:    costo,
+        precioJS:       p.precioVenta?.precio   ?? null,
+        precioSugerido,
+        markupPct:      p.precioVenta?.markupPct ?? null,
+      };
+    });
 
     res.json({ productos, total, totalPaginas: Math.ceil(total / limit) || 1 });
   } catch (err) {
