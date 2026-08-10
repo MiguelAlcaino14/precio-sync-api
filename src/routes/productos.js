@@ -31,7 +31,6 @@ router.get('/', async (req, res) => {
           costos:      { orderBy: { createdAt: 'desc' }, take: 1, select: { costo: true } },
           precioVenta: { select: { precio: true, markupPct: true } },
           cambios: {
-            where:   { estado: 'pendiente' },
             orderBy: { createdAt: 'desc' },
             take:    1,
             select:  { precioSugerido: true },
