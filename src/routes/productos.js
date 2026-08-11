@@ -43,9 +43,9 @@ router.get('/', async (req, res) => {
 
     const productos = rows.map(p => {
       const costo = p.costos[0]?.costo ?? null;
-      const { precio: precioSugerido } = costo != null
+      const { precio: precioSugerido, markupPct } = costo != null
         ? calcularPrecioConReglas(costo, p, reglasSorted)
-        : { precio: null };
+        : { precio: null, markupPct: null };
       return {
         id:             p.id,
         sku:            p.sku,
@@ -56,9 +56,9 @@ router.get('/', async (req, res) => {
         marca:          p.marca,
         proveedor:      p.proveedor,
         ultimoCosto:    costo,
-        precioJS:       p.precioVenta?.precio   ?? null,
+        precioJS:       p.precioVenta?.precio ?? null,
         precioSugerido,
-        markupPct:      p.precioVenta?.markupPct ?? null,
+        markupPct,
       };
     });
 
