@@ -15,10 +15,20 @@ router.get('/', async (req, res) => {
 
     const where = {};
     if (q) {
-      where.OR = [
-        { sku:    { contains: q, mode: 'insensitive' } },
-        { nombre: { contains: q, mode: 'insensitive' } },
-      ];
+      try {
+        const pattern = `%${q}%`;
+        const hits = await prisma.$queryRaw`
+          SELECT id FROM "Producto"
+          WHERE unaccent(nombre) ILIKE unaccent(${pattern})
+             OR unaccent(sku)    ILIKE unaccent(${pattern})
+        `;
+        where.id = { in: hits.map(r => r.id) };
+      } catch {
+        where.OR = [
+          { sku:    { contains: q, mode: 'insensitive' } },
+          { nombre: { contains: q, mode: 'insensitive' } },
+        ];
+      }
     }
     if (provId) where.proveedorId = provId;
     if (tema)   where.proveedor   = { tema };
