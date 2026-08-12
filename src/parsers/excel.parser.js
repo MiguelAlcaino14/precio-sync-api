@@ -72,8 +72,10 @@ function parsearExcelConConfig(buffer, config) {
   const iUnidadesCaja  = config.colUnidadesCaja  ? headers.findIndex(h => norm(h) === norm(config.colUnidadesCaja))  : -1;
   const iUnidadesPallet = config.colUnidadesPallet ? headers.findIndex(h => norm(h) === norm(config.colUnidadesPallet)) : -1;
 
-  // colPrecio puede ser string o array (intenta en orden, ej: ['Precio Licitación', 'Precio Neto'])
-  const precioOpciones = Array.isArray(config.colPrecio) ? config.colPrecio : [config.colPrecio];
+  // colPrecio puede ser array o string con comas como fallbacks (ej: 'PVC MAYORISTA,PRECIO NETO')
+  const precioOpciones = Array.isArray(config.colPrecio)
+    ? config.colPrecio
+    : String(config.colPrecio).split(',').map(s => s.trim()).filter(Boolean);
   let iPrecio = -1;
   for (const col of precioOpciones) {
     const idx = headers.findIndex(h => norm(h) === norm(col));
