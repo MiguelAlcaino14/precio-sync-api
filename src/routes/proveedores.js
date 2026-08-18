@@ -414,6 +414,13 @@ async function procesarArchivo(archivoId, proveedor, buffer, tipo, nombreArchivo
     const _reglasCargadas = await prisma.reglaMarkup.findMany({ where: { activa: true }, orderBy: { prioridad: 'desc' } });
     const _reglasSorted   = sortReglas(_reglasCargadas);
 
+    // Pre-cargar SKUs ignorados de este proveedor para no crear cambios de esos productos
+    const _ignorados = await prisma.mapeoSku.findMany({
+      where:  { proveedorId: proveedor.id, estado: 'ignorado' },
+      select: { skuProveedor: true },
+    });
+    const _skusIgnorados = new Set(_ignorados.map(m => m.skuProveedor));
+
     let matcheados     = 0;
     let sinMatch       = 0;
     let cambiosCreados = 0;
@@ -507,7 +514,7 @@ async function procesarArchivo(archivoId, proveedor, buffer, tipo, nombreArchivo
       const cambioSignificativo = !precioVentaActual || precioSugerido !== precioVentaActual.precio;
       console.log(`[procesarArchivo] sku=${prod.sku} costo=${prod.costo} precioSugerido=${precioSugerido} precioVentaActual=${precioVentaActual?.precio ?? null} cambio=${cambioSignificativo}`);
 
-      if (cambioSignificativo) {
+      if (cambioSignificativo && !_skusIgnorados.has(normSku(prod.sku))) {
         await prisma.cambioPendiente.updateMany({
           where: { productoId: producto.id, estado: 'pendiente' },
           data: { estado: 'reemplazado' },

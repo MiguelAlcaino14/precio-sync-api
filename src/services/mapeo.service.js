@@ -18,15 +18,30 @@ async function guardarMapeo(proveedorId, skuProveedor, jumpsellerProductId, esta
   });
 
   if (porOriginal) {
+    // No sobrescribir estado si el usuario lo ignoró manualmente
+    const estadoFinal = porOriginal.estado === 'ignorado' ? 'ignorado' : estado;
     return prisma.mapeoSku.update({
       where: { id: porOriginal.id },
       data: {
         jumpsellerProductId,
-        estado,
+        estado: estadoFinal,
         similitud,
         ultimaVezVisto: new Date(),
         ...(nombre ? { nombreProducto: nombre } : {}),
       },
+    });
+  }
+
+  // Verificar si ya existe y está ignorado → respetar decisión del usuario
+  const existente = await prisma.mapeoSku.findUnique({
+    where:  { proveedorId_skuProveedor: { proveedorId, skuProveedor: sku } },
+    select: { estado: true },
+  });
+
+  if (existente?.estado === 'ignorado') {
+    return prisma.mapeoSku.update({
+      where:  { proveedorId_skuProveedor: { proveedorId, skuProveedor: sku } },
+      data:   { ultimaVezVisto: new Date(), ...(nombre ? { nombreProducto: nombre } : {}) },
     });
   }
 
