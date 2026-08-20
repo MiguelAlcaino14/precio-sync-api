@@ -98,11 +98,6 @@ function parsearExcelConConfig(buffer, config) {
     }
     if (!costo || isNaN(costo) || costo <= 0) continue;
 
-    // Aplicar IVA si el precio es neto
-    if (!config.precioIncluyeIVA && config.factorIVA) {
-      costo = costo * config.factorIVA;
-    }
-
     const parseUnidades = v => { const n = parseInt(v); return n > 1 && n <= 10000 ? n : null; };
     const unidadesCaja   = iUnidadesCaja  >= 0 ? parseUnidades(f[iUnidadesCaja])  : null;
     const unidadesPallet = iUnidadesPallet >= 0 ? parseUnidades(f[iUnidadesPallet]) : null;
@@ -112,7 +107,7 @@ function parsearExcelConConfig(buffer, config) {
       nombre:        String(f[iNombre] || '').trim(),
       marca:         iMarca  >= 0 ? String(f[iMarca]  || '').trim() : null,
       barras:        iBarras >= 0 ? String(f[iBarras] || '').trim() : null,
-      costo:         Math.round(costo * 100) / 100,
+      costo:         costo,
       unidadesCaja,
       unidadesPallet,
       categoria:     unidadesCaja > 1 ? 'caja' : 'unidad',

@@ -41,7 +41,7 @@ function parsearFormatoA(wb) {
       const precio = licit > 0 ? licit : neto;
       if (!sku || !nombre || precio <= 0) continue;
       skusVistos.add(sku);
-      productos.push({ sku, nombre, costo: Math.round(precio), marca: String(r[2] || '').trim() || null, unidadesCaja: Number(r[7]) > 0 ? Number(r[7]) : null });
+      productos.push({ sku, nombre, costo: precio, marca: String(r[2] || '').trim() || null, unidadesCaja: Number(r[7]) > 0 ? Number(r[7]) : null });
     }
   }
 
@@ -57,7 +57,7 @@ function parsearFormatoA(wb) {
       const precio = licit > 0 ? licit : neto;
       if (!sku || skusVistos.has(sku) || !nombre || precio <= 0) continue;
       skusVistos.add(sku);
-      productos.push({ sku, nombre, costo: Math.round(precio), marca: String(r[1] || '').trim() || null, unidadesCaja: Number(r[4]) > 0 ? Number(r[4]) : null });
+      productos.push({ sku, nombre, costo: precio, marca: String(r[1] || '').trim() || null, unidadesCaja: Number(r[4]) > 0 ? Number(r[4]) : null });
     }
   }
 
@@ -89,7 +89,7 @@ function parsearFormatoB(wb) {
       const precio = licit > 0 ? licit : (Number(r[precioCol]) || 0);
       if (!sku || skusVistos.has(sku) || !nombre || precio <= 0) continue;
       skusVistos.add(sku);
-      productos.push({ sku, nombre, costo: Math.round(precio), marca: null, unidadesCaja: Number(r[ldvCol]) > 0 ? Number(r[ldvCol]) : null });
+      productos.push({ sku, nombre, costo: precio, marca: null, unidadesCaja: Number(r[ldvCol]) > 0 ? Number(r[ldvCol]) : null });
     }
   }
 

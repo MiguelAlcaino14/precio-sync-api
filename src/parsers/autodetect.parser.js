@@ -89,7 +89,7 @@ function parsearAutodetect(buffer, slug) {
       nombre:         iNombre >= 0 ? String(f[iNombre] || '').trim().slice(0, 500) : '',
       marca:          iMarca  >= 0 ? String(f[iMarca]  || '').trim().slice(0, 100) || null : null,
       barras:         iBarras >= 0 ? String(f[iBarras] || '').trim() || null : null,
-      costo:          Math.round(costo),
+      costo:          costo,
       unidadesCaja:   null,
       unidadesPallet: null,
       categoria:      'unidad',

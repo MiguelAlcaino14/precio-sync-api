@@ -55,7 +55,7 @@ async function extraerProductosDocx(buffer) {
 
     if (isNaN(costoNum) || costoNum <= 0) continue;
 
-    productos.push({ nombre, costo: Math.round(costoNum) });
+    productos.push({ nombre, costo: costoNum });
   }
 
   return productos;

@@ -497,7 +497,7 @@ async function procesarArchivo(archivoId, proveedor, buffer, tipo, nombreArchivo
 
       // Registrar el costo histórico (costoOriginal = pre-descuento, para retroactivos futuros)
       const costoOriginal = prod.costo;
-      prod.costo = Math.round(prod.costo * factorDescuento);
+      prod.costo = prod.costo * factorDescuento;
       await prisma.precioCosto.create({
         data: { productoId: producto.id, costo: prod.costo, costoOriginal, archivoId },
       });

@@ -36,7 +36,7 @@ async function parsearPDF(buffer, config) {
       nombre: nombre.trim(),
       marca:  null,
       barras: null,
-      costo:  Math.round(costo),
+      costo:  costo,
     });
   }
 
@@ -58,12 +58,12 @@ function extraerPrecio(str, config) {
     if (!soloDigitos.startsWith(qtyStr)) continue;
     const resto = soloDigitos.slice(qtyStr.length);
     const precio = digitosAPrecio(resto);
-    if (precio !== null) return aplicarIVA(precio, config);
+    if (precio !== null) return precio;
   }
 
   // Sin qty reconocible → el string completo es el precio
   const precio = digitosAPrecio(soloDigitos);
-  return precio !== null ? aplicarIVA(precio, config) : null;
+  return precio !== null ? precio : null;
 }
 
 // 3 dígitos → precio <1.000; 4 dígitos → X.YYY (miles); 5 dígitos → XX.YYY
@@ -71,13 +71,6 @@ function digitosAPrecio(digits) {
   if (digits.length < 3 || digits.length > 5) return null;
   const valor = parseInt(digits, 10);
   return isNaN(valor) ? null : valor;
-}
-
-function aplicarIVA(valor, config) {
-  if (!config.precioIncluyeIVA && config.factorIVA) {
-    return valor * config.factorIVA;
-  }
-  return valor;
 }
 
 module.exports = { parsearPDF };

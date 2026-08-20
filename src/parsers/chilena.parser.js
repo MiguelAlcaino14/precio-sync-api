@@ -67,7 +67,7 @@ function parsearChilena(buffer) {
       nombre:         nombre.slice(0, 255),
       marca:          null,
       barras:         null,
-      costo:          Math.round(costo),
+      costo:          costo,
       unidadesCaja:   iCaja   >= 0 ? parseUnidades(fila[iCaja])   : null,
       unidadesPallet: iPallet >= 0 ? parseUnidades(fila[iPallet]) : null,
     });

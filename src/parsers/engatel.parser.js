@@ -29,7 +29,7 @@ function extraerProductosExcel(buffer) {
     // Filtrar filas de encabezado de sección (contienen "precio" en col3/col4 como texto)
     if (typeof rawPrecio === 'string' && /precio/i.test(rawPrecio)) continue;
 
-    productos.push({ nombre, costo: Math.round(precio) });
+    productos.push({ nombre, costo: precio });
   }
   return productos;
 }

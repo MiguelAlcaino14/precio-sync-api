@@ -78,7 +78,7 @@ function normalizarProductos(lista) {
         nombre:         String(p.nombre || '').trim().slice(0, 500),
         marca:          p.marca && String(p.marca).trim() ? String(p.marca).trim().slice(0, 100) : null,
         barras:         null,
-        costo:          Math.round(Number(p.precio)),
+        costo:          Number(p.precio),
         unidadesCaja:   unidadesCaja > 1 ? unidadesCaja : null,
         unidadesPallet: null,
         categoria:      unidadesCaja > 1 ? 'caja' : 'unidad',

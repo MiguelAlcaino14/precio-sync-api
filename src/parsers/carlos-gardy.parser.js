@@ -42,7 +42,7 @@ function parsearCarlosGardy(buffer) {
     const costo = parseFloat(String(rawCosto).replace(/,/g, '.'));
     if (!costo || isNaN(costo) || costo <= 0) continue;
 
-    mapaPrecios.set(normalizar(nombre), { nombre, costo: Math.round(costo) });
+    mapaPrecios.set(normalizar(nombre), { nombre, costo });
   }
 
   // Ordenar las claves de mayor a menor longitud para que el prefijo más largo tenga prioridad

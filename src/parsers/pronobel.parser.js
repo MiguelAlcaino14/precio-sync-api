@@ -74,7 +74,7 @@ function parsearFormato(ws, { headerFila, colSku, colNombre, colMarca, colEMB, c
     productos.push({
       sku,
       nombre,
-      costo:        Math.round(precio),
+      costo:        precio,
       marca:        colMarca != null ? (String(r[colMarca] || '').trim() || null) : null,
       unidadesCaja,
       categoria:    unidadesCaja != null ? (unidadesCaja > 1 ? 'caja' : 'unidad') : null,

@@ -47,8 +47,6 @@ function parsearHoja(filas, nombreHoja) {
     let costo = Number(String(f[iPrecio] || '').replace(/[^0-9.,]/g, '').replace(',', '.'));
     if (!costo || isNaN(costo) || costo <= 0) continue;
 
-    costo = Math.round(costo);
-
     const unidadesCaja   = iCaja   >= 0 ? (parseInt(f[iCaja],   10) || null) : null;
     const unidadesPallet = iPallet >= 0 ? (parseInt(f[iPallet], 10) || null) : null;
 

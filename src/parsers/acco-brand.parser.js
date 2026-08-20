@@ -70,7 +70,7 @@ function parsearAccoBrand(buffer) {
       nombre: nombre.slice(0, 255),
       marca:  marca.slice(0, 100) || 'ACCO Brand',
       barras: null,
-      costo:  Math.round(costo),
+      costo:  costo,
       // unidadesCaja se retorna como campo extra; el servicio de importación lo ignora si no lo necesita
       unidadesCaja,
     });

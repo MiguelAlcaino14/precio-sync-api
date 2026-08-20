@@ -88,7 +88,7 @@ function parsearWinnex(buffer) {
           nombre,
           marca:          'Winnex',
           barras:         null,
-          costo:          Math.round(costo * 100) / 100,
+          costo:          costo,
           unidadesCaja:   esPallet ? null : (unidades || null),
           unidadesPallet: esPallet ? (unidades || null) : null,
           categoria:      esPallet ? 'pallet' : (unidades > 1 ? 'caja' : 'unidad'),

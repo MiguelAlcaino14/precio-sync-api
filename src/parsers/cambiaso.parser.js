@@ -60,7 +60,7 @@ function parsearCambiaso(buffer) {
         nombre: nombre.slice(0, 255),
         marca:  sheetName,
         barras: null,
-        costo:  Math.round(costo),
+        costo:  costo,
       });
     }
   }
