@@ -1,148 +1,65 @@
-const XLSX              = require('xlsx');
-const OpenAI            = require('openai');
-const prisma            = require('../db');
-const { esperarTurno }  = require('../services/ia-limiter');
-const { sleep, listarProductosJumpseller } = require('../services/jumpseller.service');
+const XLSX = require('xlsx');
 
-const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-const MAX_REINTENTOS = 2;
+// SKU interno estable: prefijo ENG- + slug desde el nombre
+// El match a JumpSeller se hace por nombre en MapeoSku (igual que ROMMEL/WINNEX)
+function generarSku(nombre) {
+  const slug = String(nombre)
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 90);
+  return `ENG-${slug}`;
+}
 
 /**
- * Extrae productos del Excel de ENGATEL.
- * Estructura: col0=nombre, col3=precio (numérico). Sin headers formales — las filas
- * de categoría tienen texto en col0 y "Precio..." en col3/col4.
+ * Parser ENGATEL — determinístico, sin dependencia de IA ni DB.
+ * Estructura: col0=nombre, col3=precio (numérico).
+ * Filas de sección tienen col0 vacío o col3 con texto "Precio...".
+ * Productos sin precio se incluyen con costo: null.
  */
-function extraerProductosExcel(buffer) {
+function parsearEngatel(buffer) {
   const wb   = XLSX.read(buffer, { type: 'buffer' });
   const ws   = wb.Sheets[wb.SheetNames[0]];
   const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
 
-  const productos = [];
+  const skusVistos = new Set();
+  const productos  = [];
+
   for (const row of rows) {
     const nombre = String(row[0] || '').trim();
-    const rawPrecio = row[3];
     if (!nombre) continue;
 
-    const precio = Number(rawPrecio);
-    if (!precio || isNaN(precio) || precio <= 0) continue;
+    // Excluir filas de pie/encabezado sin datos de producto
+    if (/^vigencia/i.test(nombre)) continue;
 
-    // Filtrar filas de encabezado de sección (contienen "precio" en col3/col4 como texto)
+    const rawPrecio = row[3];
+    // Filas de sección tienen "Precio..." como texto en col3
     if (typeof rawPrecio === 'string' && /precio/i.test(rawPrecio)) continue;
 
-    productos.push({ nombre, costo: precio });
-  }
-  return productos;
-}
+    const precioNum = Number(rawPrecio);
+    const costo = (!isNaN(precioNum) && precioNum > 0) ? precioNum : null;
 
-/**
- * Llama a Claude para hacer el matching entre nombres ENGATEL y productos JumpSeller.
- * Retorna array de { nombreEngatel, sku, jumpsellerProductId }.
- */
-async function matchConIA(productosEngatel, productosJS) {
-  const listaEngatel = productosEngatel.map((p, i) => `${i + 1}. ${p.nombre}`).join('\n');
-  const listaJS = productosJS.map(p => `ID:${p.id} SKU:${p.sku || 'sin-sku'} | ${p.nombre}`).join('\n');
-
-  const messages = [{
-    role:    'user',
-    content: `Eres un experto en matching de nombres de productos de papelería y consumibles de oficina en Chile.
-
-LISTA ENGATEL (proveedor, nombres abreviados):
-${listaEngatel}
-
-LISTA JUMPSELLER (tienda, nombres completos):
-${listaJS.slice(0, 40000)}
-
-Reglas de matching:
-- "R.Term." = "Rollo Termico", "R.Reg." = "Rollo Regular", "R.Autoc." = "Rollo Autocopiativo", "R.Plotter" = "Rollo Plotter"
-- "Form. Cont." = "Formulario Continuo"
-- Las dimensiones (57x25, 80x40, etc.) deben coincidir
-- El gramaje (55grs, 48grs, etc.) debe coincidir
-- La cantidad "(10 unid.)" puede estar omitida en JumpSeller
-- Si no encuentras match claro, omite ese producto
-
-Devuelve SOLO un JSON array sin texto adicional:
-[{"nombreEngatel":"nombre exacto de ENGATEL","sku":"sku de JumpSeller","jumpsellerProductId":ID_numerico}]`,
-  }];
-
-  let texto;
-  for (let intento = 0; intento <= MAX_REINTENTOS; intento++) {
-    try {
-      await esperarTurno();
-      const res = await client.chat.completions.create({ model: 'gpt-4o-mini', max_tokens: 8192, messages });
-      texto = res.choices[0].message.content.trim();
-      break;
-    } catch (err) {
-      if (intento === MAX_REINTENTOS) throw err;
-      const delayMs = (intento + 1) * 5000;
-      console.warn(`[ENGATEL-IA] Error intento ${intento + 1}/${MAX_REINTENTOS + 1}, reintentando en ${delayMs / 1000}s: ${err.message}`);
-      await new Promise(r => setTimeout(r, delayMs));
+    let sku = generarSku(nombre);
+    if (skusVistos.has(sku)) {
+      let n = 2;
+      while (skusVistos.has(`${sku}-${n}`)) n++;
+      sku = `${sku}-${n}`;
     }
-  }
+    skusVistos.add(sku);
 
-  const match = texto.match(/\[[\s\S]*\]/);
-  if (!match) {
-    console.error('[ENGATEL-IA] Respuesta sin JSON válido:', texto.slice(0, 400));
-    throw new Error('IA no devolvió JSON válido para matching ENGATEL');
-  }
-  return JSON.parse(match[0]);
-}
-
-/**
- * Parser principal ENGATEL.
- * 1. Extrae productos del Excel
- * 2. Busca mappings existentes en DB
- * 3. Para los sin mapping: trae JumpSeller + llama IA + guarda mapping
- * 4. Retorna productos con SKU resuelto
- */
-async function parsearEngatel(buffer) {
-  const productosExcel = extraerProductosExcel(buffer);
-  if (!productosExcel.length) throw new Error('ENGATEL: no se encontraron productos en el Excel');
-
-  const SLUG = 'engatel';
-
-  // Buscar mappings ya guardados
-  const nombresExcel = productosExcel.map(p => p.nombre);
-  const mapeosExistentes = await prisma.nombreMapeo.findMany({
-    where: { proveedorSlug: SLUG, nombreProveedor: { in: nombresExcel } },
-  });
-  const mapaExistente = Object.fromEntries(mapeosExistentes.map(m => [m.nombreProveedor, m]));
-
-  const sinMapping = productosExcel.filter(p => !mapaExistente[p.nombre]);
-
-  // Si hay productos sin mapping, hacer el matching con IA
-  if (sinMapping.length > 0) {
-    console.log(`[ENGATEL] ${sinMapping.length} productos sin mapping → iniciando matching con IA`);
-    const productosJS = await listarProductosJumpseller();
-    const matches = await matchConIA(sinMapping, productosJS);
-
-    // Guardar nuevos mappings en DB
-    for (const m of matches) {
-      if (!m.nombreEngatel || !m.sku) continue;
-      await prisma.nombreMapeo.upsert({
-        where:  { proveedorSlug_nombreProveedor: { proveedorSlug: SLUG, nombreProveedor: m.nombreEngatel } },
-        update: { sku: String(m.sku), jumpsellerProductId: m.jumpsellerProductId ?? null },
-        create: { proveedorSlug: SLUG, nombreProveedor: m.nombreEngatel, sku: String(m.sku), jumpsellerProductId: m.jumpsellerProductId ?? null },
-      });
-      mapaExistente[m.nombreEngatel] = { sku: String(m.sku) };
-    }
-    console.log(`[ENGATEL] ${matches.length} mappings guardados`);
-  }
-
-  // Construir resultado final (solo los que tienen SKU resuelto)
-  const resultado = [];
-  for (const p of productosExcel) {
-    const mapeo = mapaExistente[p.nombre] ?? mapaExistente[p.nombre];
-    if (!mapeo?.sku) continue;
-    resultado.push({
-      sku:    mapeo.sku,
-      nombre: p.nombre,
+    productos.push({
+      sku,
+      nombre,
       marca:  'Engatel',
       barras: null,
-      costo:  p.costo,
+      costo,
     });
   }
 
-  return resultado;
+  if (!productos.length) throw new Error('ENGATEL: no se encontraron productos en el Excel');
+  console.log(`[engatel] ${productos.length} productos parseados (${productos.filter(p => p.costo != null).length} con precio)`);
+  return productos;
 }
 
 module.exports = { parsearEngatel };
