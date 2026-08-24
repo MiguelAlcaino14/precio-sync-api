@@ -427,46 +427,8 @@ async function procesarArchivo(archivoId, proveedor, buffer, tipo, nombreArchivo
     const sinMatchNombres = [];  // Paso 0: diagnóstico de productos que no cruzan con JumpSeller
 
     for (const prod of productos) {
-      // Si el mapa JS está disponible, omitir productos que no existen en JumpSeller
-      if (mapaJS) {
-        const skuNorm  = normSku(prod.sku);
-        let   enJS     = mapaJS.mapaSku[prod.sku] ?? null;
-        let   simil    = enJS ? 1.0 : null;
-
-        if (!enJS && prod.nombre) {
-          const hit = mapaJS.mapaNombre[normNombre(prod.nombre)];
-          if (hit) { enJS = hit; simil = 0.8; }
-        }
-
-        if (!enJS) {
-          // Verificar si el usuario ya confirmó manualmente este SKU en la BD
-          const mapeoConfirmado = prod.sku
-            ? await prisma.mapeoSku.findUnique({
-                where: { proveedorId_skuProveedor: { proveedorId: proveedor.id, skuProveedor: normSku(prod.sku) } },
-                select: { estado: true },
-              })
-            : null;
-
-          if (mapeoConfirmado?.estado === 'confirmado') {
-            matcheados++;
-          } else {
-            // Sin match en JumpSeller → registrar como pendiente pero igual registrar costo/precio
-            sinMatch++;
-            sinMatchNombres.push(`${prod.sku} | ${prod.nombre || '(sin nombre)'}`);
-            if (prod.sku) {
-              await guardarMapeo(proveedor.id, prod.sku, null, 'pendiente', null, prod.nombre).catch(err => console.warn('[guardarMapeo pendiente]', err.message));
-            }
-          }
-        } else {
-          // Match encontrado → guardar/actualizar en MapeoSku como confirmado
-          matcheados++;
-          if (prod.sku && enJS.productId) {
-            await guardarMapeo(proveedor.id, prod.sku, enJS.productId, 'confirmado', simil, prod.nombre).catch(err => console.warn('[guardarMapeo confirmado]', err.message));
-          }
-        }
-      }
-
-      // Buscar o crear producto en DB interna
+      // Buscar o crear producto en DB interna PRIMERO (antes de guardar mapeo,
+      // para evitar entradas huérfanas en MapeoSku si falla la creación del Producto)
       let producto = await prisma.producto.findUnique({ where: { sku: prod.sku } });
 
       if (!producto) {
@@ -492,6 +454,44 @@ async function procesarArchivo(archivoId, proveedor, buffer, tipo, nombreArchivo
         if (prod.unidadesPallet && !producto.unidadesPallet) updates.unidadesPallet = prod.unidadesPallet;
         if (Object.keys(updates).length) {
           producto = await prisma.producto.update({ where: { id: producto.id }, data: updates });
+        }
+      }
+
+      // Luego guardar mapeo JumpSeller (ahora que el Producto ya existe)
+      if (mapaJS) {
+        const skuNorm  = normSku(prod.sku);
+        let   enJS     = mapaJS.mapaSku[prod.sku] ?? null;
+        let   simil    = enJS ? 1.0 : null;
+
+        if (!enJS && prod.nombre) {
+          const hit = mapaJS.mapaNombre[normNombre(prod.nombre)];
+          if (hit) { enJS = hit; simil = 0.8; }
+        }
+
+        if (!enJS) {
+          // Verificar si el usuario ya confirmó manualmente este SKU en la BD
+          const mapeoConfirmado = prod.sku
+            ? await prisma.mapeoSku.findUnique({
+                where: { proveedorId_skuProveedor: { proveedorId: proveedor.id, skuProveedor: normSku(prod.sku) } },
+                select: { estado: true },
+              })
+            : null;
+
+          if (mapeoConfirmado?.estado === 'confirmado') {
+            matcheados++;
+          } else {
+            sinMatch++;
+            sinMatchNombres.push(`${prod.sku} | ${prod.nombre || '(sin nombre)'}`);
+            if (prod.sku) {
+              await guardarMapeo(proveedor.id, prod.sku, null, 'pendiente', null, prod.nombre).catch(err => console.warn('[guardarMapeo pendiente]', err.message));
+            }
+          }
+        } else {
+          // Match encontrado → guardar/actualizar en MapeoSku como confirmado
+          matcheados++;
+          if (prod.sku && enJS.productId) {
+            await guardarMapeo(proveedor.id, prod.sku, enJS.productId, 'confirmado', simil, prod.nombre).catch(err => console.warn('[guardarMapeo confirmado]', err.message));
+          }
         }
       }
 
