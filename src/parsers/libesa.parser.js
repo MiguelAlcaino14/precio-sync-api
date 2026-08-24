@@ -38,10 +38,10 @@ function parsearFormatoA(wb) {
       const nombre = String(r[5] || '').trim().replace(/^[\s*]+/, '');
       const licit  = Number(r[11]) || 0;
       const neto   = Number(r[10]) || 0;
-      const precio = licit > 0 ? licit : neto;
-      if (!sku || !nombre || precio <= 0) continue;
+      const precioNum = licit > 0 ? licit : neto;
+      if (!sku || !nombre) continue;
       skusVistos.add(sku);
-      productos.push({ sku, nombre, costo: precio, marca: String(r[2] || '').trim() || null, unidadesCaja: Number(r[7]) > 0 ? Number(r[7]) : null });
+      productos.push({ sku, nombre, costo: precioNum > 0 ? precioNum : null, marca: String(r[2] || '').trim() || null, unidadesCaja: Number(r[7]) > 0 ? Number(r[7]) : null });
     }
   }
 
@@ -54,10 +54,10 @@ function parsearFormatoA(wb) {
       const nombre = String(r[3] || '').trim().replace(/^[\s*]+/, '');
       const licit  = Number(r[13]) || 0;
       const neto   = Number(r[12]) || 0;
-      const precio = licit > 0 ? licit : neto;
-      if (!sku || skusVistos.has(sku) || !nombre || precio <= 0) continue;
+      const precioNum = licit > 0 ? licit : neto;
+      if (!sku || skusVistos.has(sku) || !nombre) continue;
       skusVistos.add(sku);
-      productos.push({ sku, nombre, costo: precio, marca: String(r[1] || '').trim() || null, unidadesCaja: Number(r[4]) > 0 ? Number(r[4]) : null });
+      productos.push({ sku, nombre, costo: precioNum > 0 ? precioNum : null, marca: String(r[1] || '').trim() || null, unidadesCaja: Number(r[4]) > 0 ? Number(r[4]) : null });
     }
   }
 
@@ -86,10 +86,10 @@ function parsearFormatoB(wb) {
       const sku    = String(r[skuCol]    || '').trim();
       const nombre = String(r[nombreCol] || '').trim().replace(/^[\s*]+/, '');
       const licit  = licitCol != null ? (Number(r[licitCol]) || 0) : 0;
-      const precio = licit > 0 ? licit : (Number(r[precioCol]) || 0);
-      if (!sku || skusVistos.has(sku) || !nombre || precio <= 0) continue;
+      const precioNum = licit > 0 ? licit : (Number(r[precioCol]) || 0);
+      if (!sku || skusVistos.has(sku) || !nombre) continue;
       skusVistos.add(sku);
-      productos.push({ sku, nombre, costo: precio, marca: null, unidadesCaja: Number(r[ldvCol]) > 0 ? Number(r[ldvCol]) : null });
+      productos.push({ sku, nombre, costo: precioNum > 0 ? precioNum : null, marca: null, unidadesCaja: Number(r[ldvCol]) > 0 ? Number(r[ldvCol]) : null });
     }
   }
 

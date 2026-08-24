@@ -59,8 +59,8 @@ function parsearAccoBrand(buffer) {
     if (status !== 'VIGENTE') continue;
     if (!nombre) continue;
 
-    const costo = parsePrecio(rawPrecio);
-    if (isNaN(costo) || costo <= 0) continue;
+    const costoRaw = parsePrecio(rawPrecio);
+    const costo = (!isNaN(costoRaw) && costoRaw > 0) ? costoRaw : null;
 
     const unidadesCajaNum = parseInt(String(rawCaja).replace(/[^0-9]/g, ''), 10);
     const unidadesCaja = isNaN(unidadesCajaNum) || unidadesCajaNum <= 0 ? null : unidadesCajaNum;

@@ -76,7 +76,8 @@ function parsearWinnex(buffer) {
       if (!unidades && costo && netBundle) unidades = Math.round(netBundle / costo);
       if (unidades && (unidades <= 1 || unidades > 10000)) unidades = unidades <= 1 ? null : unidades;
 
-      if (lastName && costo && costo > 0) {
+      if (lastName) {
+        const costoFinal = (costo && costo > 0) ? costo : null;
         const nombre = aMayus(lastName);
         let sku = generarSku(nombre);
         // Garantizar unicidad ante nombres repetidos dentro del archivo
@@ -88,7 +89,7 @@ function parsearWinnex(buffer) {
           nombre,
           marca:          'Winnex',
           barras:         null,
-          costo:          costo,
+          costo:          costoFinal,
           unidadesCaja:   esPallet ? null : (unidades || null),
           unidadesPallet: esPallet ? (unidades || null) : null,
           categoria:      esPallet ? 'pallet' : (unidades > 1 ? 'caja' : 'unidad'),

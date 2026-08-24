@@ -57,8 +57,8 @@ function parsearChilena(buffer) {
     if (!skuRaw) continue;
 
     const costoRaw = fila[iPrecio];
-    const costo    = parseFloat(String(costoRaw).replace(/[^\d.,]/g, '').replace(',', '.'));
-    if (isNaN(costo) || costo <= 0) continue;
+    const costoNum = parseFloat(String(costoRaw).replace(/[^\d.,]/g, '').replace(',', '.'));
+    const costo    = (!isNaN(costoNum) && costoNum > 0) ? costoNum : null;
 
     const nombre = String(fila[iNombre] || '').trim();
 

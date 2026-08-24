@@ -28,15 +28,15 @@ async function parsearPDF(buffer, config) {
 
     const [, sku, nombre, , despuesUnidad] = match;
 
-    const costo = extraerPrecio(despuesUnidad, config);
-    if (!costo || costo <= 0) continue;
+    const costoVal = extraerPrecio(despuesUnidad, config);
+    const costo = (costoVal && costoVal > 0) ? costoVal : null;
 
     productos.push({
       sku:    sku.trim(),
       nombre: nombre.trim(),
       marca:  null,
       barras: null,
-      costo:  costo,
+      costo,
     });
   }
 

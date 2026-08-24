@@ -69,8 +69,8 @@ function parsearHoja(filas, nombreHoja) {
     const sku    = String(f[iSku]    || '').trim();
     if (!nombre || !sku) continue;
 
-    const costo = Number(f[iPrecio]) || 0;
-    if (!costo || costo <= 0) continue;
+    const costoNum = Number(f[iPrecio]) || 0;
+    const costo = costoNum > 0 ? costoNum : null;
 
     const unidadesCaja   = parseInt(f[iCaja],   10) || null;
     const unidadesPallet = parseInt(f[iPallet], 10) || null;

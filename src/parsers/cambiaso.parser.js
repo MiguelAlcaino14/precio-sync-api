@@ -52,8 +52,8 @@ function parsearCambiaso(buffer) {
       const codigoNum = Number(codigoRaw);
       if (!codigoRaw || isNaN(codigoNum) || codigoNum <= 0) continue;
 
-      const costo = parseFloat(String(precioRaw).replace(/[^\d.,]/g, '').replace(',', '.'));
-      if (isNaN(costo) || costo <= 0) continue;
+      const costoRaw = parseFloat(String(precioRaw).replace(/[^\d.,]/g, '').replace(',', '.'));
+      const costo = (!isNaN(costoRaw) && costoRaw > 0) ? costoRaw : null;
 
       mapa.set(codigoRaw, {
         sku:    codigoRaw.slice(0, 100),

@@ -495,43 +495,47 @@ async function procesarArchivo(archivoId, proveedor, buffer, tipo, nombreArchivo
         }
       }
 
-      // Registrar el costo histórico (costoOriginal = pre-descuento, para retroactivos futuros)
-      const costoOriginal = prod.costo;
-      prod.costo = prod.costo * factorDescuento;
-      await prisma.precioCosto.create({
-        data: { productoId: producto.id, costo: prod.costo, costoOriginal, archivoId },
-      });
-
-      const costoAnterior = await prisma.precioCosto.findFirst({
-        where: { productoId: producto.id, NOT: { archivoId } },
-        orderBy: { createdAt: 'desc' },
-      });
-
-      const precioVentaActual = await prisma.precioVenta.findUnique({ where: { productoId: producto.id } });
-      const { precio: precioSugerido } = calcularPrecioConReglas(prod.costo, producto, _reglasSorted);
-
-      const costoAnteriorValor  = costoAnterior?.costo ?? null;
-      const cambioSignificativo = !precioVentaActual || precioSugerido !== precioVentaActual.precio;
-      console.log(`[procesarArchivo] sku=${prod.sku} costo=${prod.costo} precioSugerido=${precioSugerido} precioVentaActual=${precioVentaActual?.precio ?? null} cambio=${cambioSignificativo}`);
-
-      if (cambioSignificativo && !_skusIgnorados.has(normSku(prod.sku))) {
-        await prisma.cambioPendiente.updateMany({
-          where: { productoId: producto.id, estado: 'pendiente' },
-          data: { estado: 'reemplazado' },
+      // Solo registrar costo y calcular cambio si el parser devolvió un precio válido
+      if (prod.costo != null) {
+        const costoOriginal = prod.costo;
+        prod.costo = prod.costo * factorDescuento;
+        await prisma.precioCosto.create({
+          data: { productoId: producto.id, costo: prod.costo, costoOriginal, archivoId },
         });
 
-        await prisma.cambioPendiente.create({
-          data: {
-            productoId:    producto.id,
-            costoAnterior: costoAnteriorValor,
-            costoNuevo:    prod.costo,
-            precioActual:  precioVentaActual?.precio ?? null,
-            precioSugerido,
-            archivoId,
-          },
+        const costoAnterior = await prisma.precioCosto.findFirst({
+          where: { productoId: producto.id, NOT: { archivoId } },
+          orderBy: { createdAt: 'desc' },
         });
 
-        cambiosCreados++;
+        const precioVentaActual = await prisma.precioVenta.findUnique({ where: { productoId: producto.id } });
+        const { precio: precioSugerido } = calcularPrecioConReglas(prod.costo, producto, _reglasSorted);
+
+        const costoAnteriorValor  = costoAnterior?.costo ?? null;
+        const cambioSignificativo = !precioVentaActual || precioSugerido !== precioVentaActual.precio;
+        console.log(`[procesarArchivo] sku=${prod.sku} costo=${prod.costo} precioSugerido=${precioSugerido} precioVentaActual=${precioVentaActual?.precio ?? null} cambio=${cambioSignificativo}`);
+
+        if (cambioSignificativo && !_skusIgnorados.has(normSku(prod.sku))) {
+          await prisma.cambioPendiente.updateMany({
+            where: { productoId: producto.id, estado: 'pendiente' },
+            data: { estado: 'reemplazado' },
+          });
+
+          await prisma.cambioPendiente.create({
+            data: {
+              productoId:    producto.id,
+              costoAnterior: costoAnteriorValor,
+              costoNuevo:    prod.costo,
+              precioActual:  precioVentaActual?.precio ?? null,
+              precioSugerido,
+              archivoId,
+            },
+          });
+
+          cambiosCreados++;
+        }
+      } else {
+        console.log(`[procesarArchivo] sku=${prod.sku} sin costo válido — producto registrado sin precio`);
       }
     }
 

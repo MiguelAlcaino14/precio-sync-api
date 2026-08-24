@@ -65,16 +65,17 @@ function parsearFormato(ws, { headerFila, colSku, colNombre, colMarca, colEMB, c
     const r      = rows[i];
     const sku    = String(r[colSku]    || '').trim();
     const nombre = String(r[colNombre] || '').trim().replace(/^[\s*]+/, '');
-    const precio = Number(r[colPrecio]) || 0;
+    const precioNum = Number(r[colPrecio]) || 0;
 
-    if (!sku || !nombre || precio <= 0) continue;
+    if (!sku || !nombre) continue;
 
+    const costo = precioNum > 0 ? precioNum : null;
     const unidadesCaja = Number(r[colEMB]) > 0 ? Number(r[colEMB]) : null;
 
     productos.push({
       sku,
       nombre,
-      costo:        precio,
+      costo,
       marca:        colMarca != null ? (String(r[colMarca] || '').trim() || null) : null,
       unidadesCaja,
       categoria:    unidadesCaja != null ? (unidadesCaja > 1 ? 'caja' : 'unidad') : null,

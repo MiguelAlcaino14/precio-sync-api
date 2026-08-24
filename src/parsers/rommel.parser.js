@@ -51,11 +51,11 @@ function parsearRommel(buffer, config = {}) {
       const nombre = String(f[g.no] || '').trim();
       if (!numero || !nombre) continue;
 
-      let costo = f[g.p];
-      if (typeof costo === 'string') {
-        costo = parseFloat(costo.replace(/\$/g, '').replace(/\./g, '').replace(',', '.').trim());
+      let costoRaw = f[g.p];
+      if (typeof costoRaw === 'string') {
+        costoRaw = parseFloat(costoRaw.replace(/\$/g, '').replace(/\./g, '').replace(',', '.').trim());
       }
-      if (!costo || isNaN(costo) || costo <= 0) continue;
+      const costo = (costoRaw && !isNaN(costoRaw) && costoRaw > 0) ? costoRaw : null;
 
       // SKU interno estable desde el nombre (el match a JumpSeller es por nombre);
       // el N° es solo posición y cambia entre listas, no sirve como código único.

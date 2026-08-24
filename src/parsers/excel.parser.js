@@ -90,13 +90,13 @@ function parsearExcelConConfig(buffer, config) {
     const sku = String(f[iSku] || '').trim();
     if (!sku) continue;
 
-    let costo = f[iPrecio];
-    if (typeof costo === 'string') {
-      costo = parseFloat(
-        costo.replace(/\$/g, '').replace(/\./g, '').replace(',', '.').trim()
+    let costoRaw = f[iPrecio];
+    if (typeof costoRaw === 'string') {
+      costoRaw = parseFloat(
+        costoRaw.replace(/\$/g, '').replace(/\./g, '').replace(',', '.').trim()
       );
     }
-    if (!costo || isNaN(costo) || costo <= 0) continue;
+    const costo = (costoRaw && !isNaN(costoRaw) && costoRaw > 0) ? costoRaw : null;
 
     const parseUnidades = v => { const n = parseInt(v); return n > 1 && n <= 10000 ? n : null; };
     const unidadesCaja   = iUnidadesCaja  >= 0 ? parseUnidades(f[iUnidadesCaja])  : null;

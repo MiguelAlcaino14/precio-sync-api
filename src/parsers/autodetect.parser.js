@@ -78,11 +78,11 @@ function parsearAutodetect(buffer, slug) {
     const sku = String(f[iSku] || '').trim();
     if (!sku || sku.length > 100) continue;
 
-    let costo = f[iPrecio];
-    if (typeof costo === 'string') {
-      costo = parseFloat(costo.replace(/\$/g, '').replace(/\./g, '').replace(',', '.').trim());
+    let costoRaw = f[iPrecio];
+    if (typeof costoRaw === 'string') {
+      costoRaw = parseFloat(costoRaw.replace(/\$/g, '').replace(/\./g, '').replace(',', '.').trim());
     }
-    if (!costo || isNaN(costo) || costo <= 0) continue;
+    const costo = (costoRaw && !isNaN(costoRaw) && costoRaw > 0) ? costoRaw : null;
 
     productos.push({
       sku,
