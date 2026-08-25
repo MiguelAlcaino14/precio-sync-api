@@ -359,6 +359,7 @@ router.post('/:id/debug-parser', requireAdmin, upload.single('archivo'), async (
     res.json({
       total: productos.length,
       tipo,
+      proveedorConfig: proveedor.config,
       hojas,
       muestras: muestraHoja1,
       muestra: productos.slice(0, 5).map(p => ({ sku: p.sku, nombre: p.nombre, costo: p.costo })),
