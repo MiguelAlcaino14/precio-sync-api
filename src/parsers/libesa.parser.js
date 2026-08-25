@@ -34,26 +34,8 @@ function parsearFormatoA(wb) {
   const productos  = [];
   const skusVistos = new Set();
 
-  const ws1 = wb.Sheets['Hoja1'];
-  if (ws1) {
-    const filas = XLSX.utils.sheet_to_json(ws1, { header: 1, defval: '' });
-    for (let i = 2; i < filas.length; i++) {
-      const r      = filas[i];
-      const sku    = String(r[4] || '').trim();
-      const nombre = String(r[5] || '').trim().replace(/^[\s*]+/, '');
-      const rawLicit = r[11];
-      const rawNeto  = r[10];
-      const licit    = esCeldaError(rawLicit) ? 0 : (Number(rawLicit) || 0);
-      const neto     = esCeldaError(rawNeto)  ? 0 : (Number(rawNeto)  || 0);
-      const precio   = licit > 0 ? licit : neto;
-      const hayError = esCeldaError(rawLicit) || esCeldaError(rawNeto);
-      if (!sku || !nombre) continue;
-      if (!hayError && precio <= 0) continue;
-      skusVistos.add(sku);
-      productos.push({ sku, nombre, costo: precio > 0 ? precio : null, marca: String(r[2] || '').trim() || null, unidadesCaja: Number(r[7]) > 0 ? Number(r[7]) : null });
-    }
-  }
-
+  // Paso 1: pre-escanear Libreria — sus precios de licitación tienen prioridad
+  const preciosLiberia = new Map(); // sku → { precio, nombre, marca, unidadesCaja }
   const ws2 = wb.Sheets['Libreria'];
   if (ws2) {
     const filas = XLSX.utils.sheet_to_json(ws2, { header: 1, defval: '' });
@@ -61,17 +43,59 @@ function parsearFormatoA(wb) {
       const r      = filas[i];
       const sku    = String(r[2] || '').trim();
       const nombre = String(r[3] || '').trim().replace(/^[\s*]+/, '');
+      if (!sku || !nombre) continue;
       const rawLicit = r[13];
       const rawNeto  = r[12];
       const licit    = esCeldaError(rawLicit) ? 0 : (Number(rawLicit) || 0);
       const neto     = esCeldaError(rawNeto)  ? 0 : (Number(rawNeto)  || 0);
       const precio   = licit > 0 ? licit : neto;
       const hayError = esCeldaError(rawLicit) || esCeldaError(rawNeto);
-      if (!sku || skusVistos.has(sku) || !nombre) continue;
       if (!hayError && precio <= 0) continue;
-      skusVistos.add(sku);
-      productos.push({ sku, nombre, costo: precio > 0 ? precio : null, marca: String(r[1] || '').trim() || null, unidadesCaja: Number(r[4]) > 0 ? Number(r[4]) : null });
+      preciosLiberia.set(sku, {
+        precio:        precio > 0 ? precio : null,
+        nombre,
+        marca:         String(r[1] || '').trim() || null,
+        unidadesCaja:  Number(r[4]) > 0 ? Number(r[4]) : null,
+      });
     }
+  }
+
+  // Paso 2: Hoja1 — precio de Libreria (P.LICITACIÓN) toma prioridad cuando existe
+  const ws1 = wb.Sheets['Hoja1'];
+  if (ws1) {
+    const filas = XLSX.utils.sheet_to_json(ws1, { header: 1, defval: '' });
+    for (let i = 2; i < filas.length; i++) {
+      const r      = filas[i];
+      const sku    = String(r[4] || '').trim();
+      const nombre = String(r[5] || '').trim().replace(/^[\s*]+/, '');
+      if (!sku || !nombre) continue;
+
+      let costo;
+      const lib = preciosLiberia.get(sku);
+      if (lib && lib.precio != null) {
+        // Libreria tiene P.LICITACIÓN válido — usarlo
+        costo = lib.precio;
+      } else {
+        const rawLicit = r[11];
+        const rawNeto  = r[10];
+        const licit    = esCeldaError(rawLicit) ? 0 : (Number(rawLicit) || 0);
+        const neto     = esCeldaError(rawNeto)  ? 0 : (Number(rawNeto)  || 0);
+        const precio   = licit > 0 ? licit : neto;
+        const hayError = esCeldaError(rawLicit) || esCeldaError(rawNeto);
+        if (!hayError && precio <= 0) continue;
+        costo = precio > 0 ? precio : null;
+      }
+
+      skusVistos.add(sku);
+      productos.push({ sku, nombre, costo, marca: String(r[2] || '').trim() || null, unidadesCaja: Number(r[7]) > 0 ? Number(r[7]) : null });
+    }
+  }
+
+  // Paso 3: productos únicos de Libreria (no presentes en Hoja1)
+  for (const [sku, entry] of preciosLiberia) {
+    if (skusVistos.has(sku)) continue;
+    skusVistos.add(sku);
+    productos.push({ sku, nombre: entry.nombre, costo: entry.precio, marca: entry.marca, unidadesCaja: entry.unidadesCaja });
   }
 
   console.log(`[libesa-A] ${productos.length} productos parseados`);
