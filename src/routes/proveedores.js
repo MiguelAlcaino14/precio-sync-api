@@ -326,6 +326,21 @@ router.get('/:id/productos', requireAdmin, async (req, res) => {
   }
 });
 
+// PATCH /api/proveedores/:id/config
+router.patch('/:id/config', requireAdmin, async (req, res) => {
+  try {
+    const proveedor = await prisma.proveedor.findFirst({ where: { OR: [{ id: req.params.id }, { slug: req.params.id }] } });
+    if (!proveedor) return res.status(404).json({ error: 'Proveedor no encontrado' });
+    const updated = await prisma.proveedor.update({
+      where: { id: proveedor.id },
+      data: { config: req.body.config },
+    });
+    res.json({ ok: true, config: updated.config });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // POST /api/proveedores/:id/debug-parser  — temporal, muestra primeros 20 productos parseados
 router.post('/:id/debug-parser', requireAdmin, upload.single('archivo'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No se recibió archivo' });
