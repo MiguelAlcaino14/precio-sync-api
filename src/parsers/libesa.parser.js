@@ -1,5 +1,10 @@
 const XLSX = require('xlsx');
 
+// Retorna true si el valor de celda es un error de fórmula Excel (no un precio 0 real)
+function esCeldaError(v) {
+  return typeof v === 'string' && /^(#|ERROR)/i.test(v.trim());
+}
+
 /**
  * Parser Libesa — detecta automáticamente el formato según hojas presentes.
  *
@@ -36,12 +41,16 @@ function parsearFormatoA(wb) {
       const r      = filas[i];
       const sku    = String(r[4] || '').trim();
       const nombre = String(r[5] || '').trim().replace(/^[\s*]+/, '');
-      const licit  = Number(r[11]) || 0;
-      const neto   = Number(r[10]) || 0;
-      const precio = licit > 0 ? licit : neto;
-      if (!sku || !nombre || precio <= 0) continue;
+      const rawLicit = r[11];
+      const rawNeto  = r[10];
+      const licit    = esCeldaError(rawLicit) ? 0 : (Number(rawLicit) || 0);
+      const neto     = esCeldaError(rawNeto)  ? 0 : (Number(rawNeto)  || 0);
+      const precio   = licit > 0 ? licit : neto;
+      const hayError = esCeldaError(rawLicit) || esCeldaError(rawNeto);
+      if (!sku || !nombre) continue;
+      if (!hayError && precio <= 0) continue;
       skusVistos.add(sku);
-      productos.push({ sku, nombre, costo: precio, marca: String(r[2] || '').trim() || null, unidadesCaja: Number(r[7]) > 0 ? Number(r[7]) : null });
+      productos.push({ sku, nombre, costo: precio > 0 ? precio : null, marca: String(r[2] || '').trim() || null, unidadesCaja: Number(r[7]) > 0 ? Number(r[7]) : null });
     }
   }
 
@@ -52,12 +61,16 @@ function parsearFormatoA(wb) {
       const r      = filas[i];
       const sku    = String(r[2] || '').trim();
       const nombre = String(r[3] || '').trim().replace(/^[\s*]+/, '');
-      const licit  = Number(r[13]) || 0;
-      const neto   = Number(r[12]) || 0;
-      const precio = licit > 0 ? licit : neto;
-      if (!sku || skusVistos.has(sku) || !nombre || precio <= 0) continue;
+      const rawLicit = r[13];
+      const rawNeto  = r[12];
+      const licit    = esCeldaError(rawLicit) ? 0 : (Number(rawLicit) || 0);
+      const neto     = esCeldaError(rawNeto)  ? 0 : (Number(rawNeto)  || 0);
+      const precio   = licit > 0 ? licit : neto;
+      const hayError = esCeldaError(rawLicit) || esCeldaError(rawNeto);
+      if (!sku || skusVistos.has(sku) || !nombre) continue;
+      if (!hayError && precio <= 0) continue;
       skusVistos.add(sku);
-      productos.push({ sku, nombre, costo: precio, marca: String(r[1] || '').trim() || null, unidadesCaja: Number(r[4]) > 0 ? Number(r[4]) : null });
+      productos.push({ sku, nombre, costo: precio > 0 ? precio : null, marca: String(r[1] || '').trim() || null, unidadesCaja: Number(r[4]) > 0 ? Number(r[4]) : null });
     }
   }
 
@@ -85,11 +98,16 @@ function parsearFormatoB(wb) {
       const r      = filas[i];
       const sku    = String(r[skuCol]    || '').trim();
       const nombre = String(r[nombreCol] || '').trim().replace(/^[\s*]+/, '');
-      const licit  = licitCol != null ? (Number(r[licitCol]) || 0) : 0;
-      const precio = licit > 0 ? licit : (Number(r[precioCol]) || 0);
-      if (!sku || skusVistos.has(sku) || !nombre || precio <= 0) continue;
+      const rawLicit  = licitCol != null ? r[licitCol] : null;
+      const rawPrecio = r[precioCol];
+      const licit     = rawLicit  && !esCeldaError(rawLicit)  ? (Number(rawLicit)  || 0) : 0;
+      const precioVal = rawPrecio && !esCeldaError(rawPrecio) ? (Number(rawPrecio) || 0) : 0;
+      const precio    = licit > 0 ? licit : precioVal;
+      const hayError  = esCeldaError(rawLicit) || esCeldaError(rawPrecio);
+      if (!sku || skusVistos.has(sku) || !nombre) continue;
+      if (!hayError && precio <= 0) continue;
       skusVistos.add(sku);
-      productos.push({ sku, nombre, costo: precio, marca: null, unidadesCaja: Number(r[ldvCol]) > 0 ? Number(r[ldvCol]) : null });
+      productos.push({ sku, nombre, costo: precio > 0 ? precio : null, marca: null, unidadesCaja: Number(r[ldvCol]) > 0 ? Number(r[ldvCol]) : null });
     }
   }
 
