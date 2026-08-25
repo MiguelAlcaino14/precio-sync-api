@@ -355,7 +355,8 @@ router.post('/:id/importar', requireAdmin, importLimiter, upload.single('archivo
     const driveModifiedTime  = (req.body.driveModifiedTime  || '').trim().slice(0, 50)  || null;
 
     // Deduplicar: si ya procesamos este archivo con esta fecha de modificación, saltar
-    if (driveFileId && driveModifiedTime) {
+    const force = req.query.force === 'true' || req.body.force === 'true';
+    if (!force && driveFileId && driveModifiedTime) {
       const yaExiste = await prisma.archivoImportado.findFirst({
         where: { proveedorId: proveedor.id, driveFileId, driveModifiedTime, estado: 'procesado' },
       });
@@ -447,6 +448,7 @@ async function procesarArchivo(archivoId, proveedor, buffer, tipo, nombreArchivo
       } else {
         if (!mapaJS) matcheados++;
         const updates = {};
+        if (producto.proveedorId !== proveedor.id)            updates.proveedorId    = proveedor.id;
         if (prod.nombre         && !producto.nombre)         updates.nombre         = prod.nombre;
         if ('marca' in prod && prod.marca !== producto.marca) updates.marca          = prod.marca ?? null;
         if (prod.categoria && CATEGORIAS_VALIDAS.includes(prod.categoria) && !producto.categoria) updates.categoria = prod.categoria;
