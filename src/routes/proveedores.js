@@ -337,7 +337,7 @@ router.post('/:id/debug-parser', requireAdmin, upload.single('archivo'), async (
     // Diagnóstico de hojas del workbook (solo para Excel)
     let hojas = null;
     let muestraHoja1 = null;
-    if (tipo === 'excel') {
+    if (tipo === 'xlsx' || tipo === 'xls' || tipo === 'excel') {
       const XLSX = require('xlsx');
       const wb = XLSX.read(req.file.buffer, { type: 'buffer' });
       hojas = wb.SheetNames;
