@@ -6,6 +6,19 @@ const router = express.Router();
 
 const normStr = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
 
+// Detecta una sola vez si unaccent está disponible en la BD
+let _unaccentOk = null;
+async function unaccentDisponible() {
+  if (_unaccentOk !== null) return _unaccentOk;
+  try {
+    await prisma.$queryRaw`SELECT unaccent('test')`;
+    _unaccentOk = true;
+  } catch {
+    _unaccentOk = false;
+  }
+  return _unaccentOk;
+}
+
 function mapProducto(p, reglasSorted) {
   const costo = p.costos[0]?.costo ?? null;
   const { precio: precioSugerido, markupPct } = costo != null
@@ -43,9 +56,9 @@ router.get('/', async (req, res) => {
     const provId = String(req.query.proveedorId || '').trim();
 
     if (q) {
-      // Paso 1: obtener IDs que coinciden (insensible a tildes)
+      // Paso 1: obtener IDs que coinciden (insensible a tildes si unaccent disponible)
       let matchIds;
-      try {
+      if (await unaccentDisponible()) {
         const pattern = `%${q}%`;
         const hits = await prisma.$queryRaw`
           SELECT id FROM "Producto"
@@ -53,7 +66,7 @@ router.get('/', async (req, res) => {
              OR unaccent(sku)    ILIKE unaccent(${pattern})
         `;
         matchIds = hits.map(r => r.id);
-      } catch {
+      } else {
         const hits = await prisma.producto.findMany({
           where: { OR: [
             { sku:    { contains: q, mode: 'insensitive' } },
