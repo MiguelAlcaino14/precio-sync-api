@@ -346,6 +346,13 @@ router.post('/:id/debug-parser', requireAdmin, upload.single('archivo'), async (
         const filas = XLSX.utils.sheet_to_json(ws1, { header: 1, defval: '' });
         muestraHoja1 = filas.slice(0, 4).map(r => r.slice(0, 12));
       }
+      const ws2 = wb.Sheets['Libreria'];
+      if (ws2) {
+        const filas = XLSX.utils.sheet_to_json(ws2, { header: 1, defval: '' });
+        muestraHoja1 = { hoja1: muestraHoja1, libreria: filas.slice(0, 4).map(r => r.slice(0, 15)) };
+      } else {
+        muestraHoja1 = { hoja1: muestraHoja1, libreria: null };
+      }
     }
 
     const { productos } = await parsearArchivo(req.file.buffer, tipo, proveedor.config, proveedor.slug);
@@ -353,8 +360,8 @@ router.post('/:id/debug-parser', requireAdmin, upload.single('archivo'), async (
       total: productos.length,
       tipo,
       hojas,
-      muestraHoja1,
-      muestra: productos.slice(0, 20).map(p => ({ sku: p.sku, nombre: p.nombre, costo: p.costo })),
+      muestras: muestraHoja1,
+      muestra: productos.slice(0, 5).map(p => ({ sku: p.sku, nombre: p.nombre, costo: p.costo })),
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
