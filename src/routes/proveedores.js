@@ -333,10 +333,27 @@ router.post('/:id/debug-parser', requireAdmin, upload.single('archivo'), async (
     const proveedor = await prisma.proveedor.findFirst({ where: { OR: [{ id: req.params.id }, { slug: req.params.id }] } });
     if (!proveedor) return res.status(404).json({ error: 'Proveedor no encontrado' });
     const tipo = detectarTipo(req.file.originalname);
+
+    // Diagnóstico de hojas del workbook (solo para Excel)
+    let hojas = null;
+    let muestraHoja1 = null;
+    if (tipo === 'excel') {
+      const XLSX = require('xlsx');
+      const wb = XLSX.read(req.file.buffer, { type: 'buffer' });
+      hojas = wb.SheetNames;
+      const ws1 = wb.Sheets['Hoja1'];
+      if (ws1) {
+        const filas = XLSX.utils.sheet_to_json(ws1, { header: 1, defval: '' });
+        muestraHoja1 = filas.slice(0, 4).map(r => r.slice(0, 12));
+      }
+    }
+
     const { productos } = await parsearArchivo(req.file.buffer, tipo, proveedor.config, proveedor.slug);
     res.json({
       total: productos.length,
       tipo,
+      hojas,
+      muestraHoja1,
       muestra: productos.slice(0, 20).map(p => ({ sku: p.sku, nombre: p.nombre, costo: p.costo })),
     });
   } catch (err) {
