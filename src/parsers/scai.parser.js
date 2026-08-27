@@ -167,13 +167,13 @@ async function parsearScai(buffer, proveedorSlug) {
     console.log(`[SCAI] ${matches.length} mappings guardados`);
   }
 
-  // Construir resultado final (solo los que tienen SKU resuelto)
+  // Construir resultado final — todos los productos; SKU del mapping si existe, sino slug del nombre
   const resultado = [];
   for (const p of productosDocx) {
     const mapeo = mapaExistente[p.nombre];
-    if (!mapeo?.sku) continue;
+    const sku = mapeo?.sku || p.nombre.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
     resultado.push({
-      sku:    mapeo.sku,
+      sku,
       nombre: p.nombre,
       marca:  'Duracell',
       barras: null,
