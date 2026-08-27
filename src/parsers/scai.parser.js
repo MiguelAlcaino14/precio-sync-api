@@ -31,8 +31,8 @@ async function extraerProductosDocx(buffer) {
     .map(l => l.trim())
     .filter(l => l.length > 0);
 
-  // Saltar encabezado (primeras 9 líneas)
-  const HEADER_LINES = 9;
+  // Saltar encabezado (primeras 10 líneas — incluye repetición de "LP DISTRIBUIDOR")
+  const HEADER_LINES = 10;
   const datos = lineas.slice(HEADER_LINES);
 
   const productos = [];
@@ -44,13 +44,14 @@ async function extraerProductosDocx(buffer) {
 
     if (!nombre || !rawPrecio) continue; // bloque incompleto/vacío
 
-    // Parsear precio: "$5,767" → 5767
-    const costoNum = parseFloat(
+    // Parsear precio: "$5,767" → 5767 (coma = separador miles chileno)
+    const costoNum = parseInt(
       String(rawPrecio)
         .replace(/\$/g, '')
-        .replace(/\./g, '')   // separador miles chileno (punto)
-        .replace(/,/g, '.')   // decimal si aplica
-        .trim()
+        .replace(/\./g, '')
+        .replace(/,/g, '')
+        .trim(),
+      10
     );
 
     if (isNaN(costoNum) || costoNum <= 0) continue;
