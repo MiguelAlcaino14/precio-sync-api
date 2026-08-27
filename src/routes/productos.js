@@ -67,14 +67,11 @@ router.get('/', async (req, res) => {
         `;
         matchIds = hits.map(r => r.id);
       } else {
-        const hits = await prisma.producto.findMany({
-          where: { OR: [
-            { sku:    { contains: q, mode: 'insensitive' } },
-            { nombre: { contains: q, mode: 'insensitive' } },
-          ]},
-          select: { id: true },
-        });
-        matchIds = hits.map(r => r.id);
+        const nqFallback = normStr(q);
+        const all = await prisma.producto.findMany({ select: { id: true, sku: true, nombre: true } });
+        matchIds = all
+          .filter(p => normStr(p.nombre).includes(nqFallback) || normStr(p.sku).includes(nqFallback))
+          .map(p => p.id);
       }
 
       // Paso 2: aplicar filtros de proveedor/tema sobre los IDs que coinciden
