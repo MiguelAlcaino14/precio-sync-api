@@ -15,8 +15,26 @@ const { parsearLibesa }      = require('./libesa.parser');
 const { parsearPronobel }    = require('./pronobel.parser');
 const { parsearAutodetect }  = require('./autodetect.parser');
 const { parsearChilena }     = require('./chilena.parser');
+const { parsearLlabres }     = require('./llabres.parser');
 
 const tieneApiKey = () => !!process.env.OPENAI_API_KEY;
+
+const PARSER_TIPOS = [
+  { tipo: 'engatel',     label: 'Engatel',          formatos: ['xlsx'] },
+  { tipo: 'carlos-gardy', label: 'Carlos Gardy',    formatos: ['xlsx'] },
+  { tipo: 'acco-brand',  label: 'ACCO Brand',        formatos: ['xlsx'] },
+  { tipo: 'scai',        label: 'SCAI (Duracell)',   formatos: ['docx'] },
+  { tipo: 'cambiaso',    label: 'Cambiaso Herrera',  formatos: ['xlsx'] },
+  { tipo: 'winnex',      label: 'Winnex / Green World', formatos: ['pptx', 'ppt'] },
+  { tipo: 'rommel',      label: 'Rommel',            formatos: ['xlsx'] },
+  { tipo: 'demarka',     label: 'Demarka',           formatos: ['xlsx'] },
+  { tipo: 'chipro',      label: 'Chipro',            formatos: ['xlsx'] },
+  { tipo: 'libesa',      label: 'Libesa',            formatos: ['xlsx'] },
+  { tipo: 'pronobel',    label: 'Pronobel',          formatos: ['xlsx'] },
+  { tipo: 'chilena',     label: 'Chilenamayorista',  formatos: ['xlsx'] },
+  { tipo: 'llabres',     label: 'Llabres',           formatos: ['pdf'] },
+  { tipo: 'ia',          label: 'IA (automático)',   formatos: ['xlsx', 'xls', 'csv', 'pdf', 'ppt', 'pptx'] },
+];
 
 /**
  * Parsea un archivo según la config del proveedor.
@@ -37,6 +55,7 @@ async function parsearArchivo(buffer, tipo, config, proveedorSlug) {
   if (config?.tipo === 'libesa')       return { productos: parsearLibesa(buffer),                    sugerencia: null };
   if (config?.tipo === 'pronobel')     return { productos: parsearPronobel(buffer),                  sugerencia: null };
   if (config?.tipo === 'chilena')      return { productos: parsearChilena(buffer),                    sugerencia: null };
+  if (config?.tipo === 'llabres')      return { productos: await parsearLlabres(buffer),              sugerencia: null };
 
   if (config?.tipo === 'ia') {
     // PPT/PPTX: parsearConIA no los soporta; extraer texto localmente + IA
