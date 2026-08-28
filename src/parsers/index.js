@@ -30,7 +30,7 @@ const tieneApiKey = () => !!process.env.OPENAI_API_KEY;
 
 const PARSER_TIPOS = [
   { tipo: 'engatel',     label: 'Engatel',          formatos: ['xlsx'] },
-  { tipo: 'carlos-gardy', label: 'Carlos Gardy',    formatos: ['xlsx'] },
+  { tipo: 'carlos-gardy', label: 'Carlos Gardy',    formatos: ['docx'] },
   { tipo: 'acco-brand',  label: 'ACCO Brand',        formatos: ['xlsx'] },
   { tipo: 'scai',        label: 'SCAI (Duracell)',   formatos: ['docx'] },
   { tipo: 'cambiaso',    label: 'Cambiaso Herrera',  formatos: ['xlsx'] },
@@ -62,7 +62,7 @@ const PARSER_TIPOS = [
  */
 async function parsearArchivo(buffer, tipo, config, proveedorSlug) {
   if (config?.tipo === 'engatel')      return { productos: await parsearEngatel(buffer),             sugerencia: null };
-  if (config?.tipo === 'carlos-gardy') return { productos: parsearCarlosGardy(buffer),               sugerencia: null };
+  if (config?.tipo === 'carlos-gardy') return { productos: await parsearCarlosGardy(buffer),          sugerencia: null };
   if (config?.tipo === 'acco-brand')   return { productos: parsearAccoBrand(buffer),                 sugerencia: null };
   if (config?.tipo === 'scai')         return { productos: await parsearScai(buffer, proveedorSlug), sugerencia: null };
   if (config?.tipo === 'cambiaso')     return { productos: parsearCambiaso(buffer),                  sugerencia: null };

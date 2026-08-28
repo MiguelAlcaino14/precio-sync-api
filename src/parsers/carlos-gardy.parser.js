@@ -1,90 +1,72 @@
-const XLSX = require('xlsx');
+const mammoth = require('mammoth');
 
-/**
- * Normaliza un string para comparación: minúsculas, espacios colapsados, sin puntuación extra.
- */
-function normalizar(str) {
-  return String(str || '')
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, ' ');
+const IGNORAR = [
+  /^0\s*$/,
+  /^carlos gardy/i,
+  /fabricaci[oó]n/i,
+  /bolsas y forros/i,
+  /archivadores-carpetas/i,
+  /villarrica/i,
+  /la granja/i,
+  /pl[aá]sticos inzunza/i,
+  /lista de precios/i,
+  /precio\s+precio con\s+descuento/i,
+  /mas iva/i,
+  /^nota:/i,
+];
+
+function esPrecio(s) {
+  return /^\$[\d.,]+$/.test(s.trim());
 }
 
-/**
- * Parser para CARLOS GARDY.
- *
- * Hoja1 "Lista de Precios ": col0=nombre genérico, col2=costo neto con 10% descuento.
- * Hoja2 "Listado de códigos": col0=SKU, col1=descripción completa (nombre+variante).
- *
- * Cross-reference: el nombre de hoja2 comienza con el nombre de hoja1 como prefijo.
- * Retorna una entrada por cada SKU de hoja2 que tenga match en hoja1.
- *
- * @param {Buffer} buffer
- * @returns {Array<{ sku, nombre, marca, barras, costo }>}
- */
-function parsearCarlosGardy(buffer) {
-  const wb = XLSX.read(buffer, { type: 'buffer' });
+function parsearPrecio(s) {
+  return parseFloat(s.replace(/\$/g, '').replace(/\./g, '').replace(',', '.').trim());
+}
 
-  // ── Hoja 1: precios ──────────────────────────────────────────────────────────
-  const wsPrecios = wb.Sheets[wb.SheetNames[0]];
-  const rowsPrecios = XLSX.utils.sheet_to_json(wsPrecios, { header: 1, defval: '' });
+function generarSku(nombre, idx) {
+  return `CG-${String(idx + 1).padStart(3, '0')}`;
+}
 
-  // { nombreNorm → costo }
-  const mapaPrecios = new Map();
+async function parsearCarlosGardy(buffer) {
+  const { value } = await mammoth.extractRawText({ buffer });
+  const lineas = value.split('\n').map(l => l.trim()).filter(Boolean);
 
-  // Fila 0 = headers, fila 1+ = datos
-  for (let i = 1; i < rowsPrecios.length; i++) {
-    const row = rowsPrecios[i];
-    const nombre = String(row[0] || '').trim();
-    if (!nombre) continue;
+  // Filtrar encabezado y notas
+  const datos = lineas.filter(l => !IGNORAR.some(re => re.test(l)));
 
-    const rawCosto = row[2]; // col2 = costo con 10% descuento
-    const costo = parseFloat(String(rawCosto).replace(/,/g, '.'));
-    if (!costo || isNaN(costo) || costo <= 0) continue;
+  const productos = [];
+  let i = 0;
 
-    mapaPrecios.set(normalizar(nombre), { nombre, costo });
-  }
+  while (i < datos.length) {
+    const l = datos[i];
 
-  // Ordenar las claves de mayor a menor longitud para que el prefijo más largo tenga prioridad
-  const clavesPrecios = [...mapaPrecios.keys()].sort((a, b) => b.length - a.length);
+    // Si no es precio, es nombre de producto
+    if (!esPrecio(l)) {
+      const nombre = l;
+      const p1 = datos[i + 1]; // precio lista
+      const p2 = datos[i + 2]; // precio con descuento
 
-  // ── Hoja 2: SKUs ─────────────────────────────────────────────────────────────
-  const wsCodigos = wb.Sheets[wb.SheetNames[1]];
-  const rowsCodigos = XLSX.utils.sheet_to_json(wsCodigos, { header: 1, defval: '' });
-
-  const resultado = [];
-
-  // Fila 0 = headers, fila 1+ = datos
-  for (let i = 1; i < rowsCodigos.length; i++) {
-    const row = rowsCodigos[i];
-    const sku = String(row[0] || '').trim();
-    const nombreCompleto = String(row[1] || '').trim();
-
-    if (!sku || !nombreCompleto) continue;
-
-    const nombreNorm = normalizar(nombreCompleto);
-
-    // Buscar el prefijo más largo que coincida en hoja1
-    let match = null;
-    for (const clave of clavesPrecios) {
-      if (nombreNorm.startsWith(clave)) {
-        match = mapaPrecios.get(clave);
-        break;
+      if (p1 && p2 && esPrecio(p1) && esPrecio(p2)) {
+        const costo = parsearPrecio(p2); // usar precio con descuento
+        if (costo > 0) {
+          productos.push({
+            sku:    generarSku(nombre, productos.length),
+            nombre: nombre.slice(0, 255),
+            marca:  'Carlos Gardy',
+            barras: null,
+            costo,
+          });
+        }
+        i += 3;
+      } else {
+        i++;
       }
+    } else {
+      i++;
     }
-
-    if (!match) continue;
-
-    resultado.push({
-      sku:    sku.slice(0, 100),
-      nombre: nombreCompleto.slice(0, 255),
-      marca:  'Carlos Gardy',
-      barras: null,
-      costo:  match.costo,
-    });
   }
 
-  return resultado;
+  return productos;
 }
 
 module.exports = { parsearCarlosGardy };
