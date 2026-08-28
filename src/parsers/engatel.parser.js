@@ -1,29 +1,18 @@
 const XLSX = require('xlsx');
 
-// SKU interno estable: prefijo ENG- + slug desde el nombre
-// El match a JumpSeller se hace por nombre en MapeoSku (igual que ROMMEL/WINNEX)
-function generarSku(nombre) {
-  const slug = String(nombre)
-    .normalize('NFD').replace(/[̀-ͯ]/g, '')
-    .toUpperCase()
-    .replace(/[^A-Z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 90);
-  return `ENG-${slug}`;
-}
-
 /**
  * Parser ENGATEL — determinístico, sin dependencia de IA ni DB.
  * Estructura: col0=nombre, col3=precio (numérico).
  * Filas de sección tienen col0 vacío o col3 con texto "Precio...".
  * Productos sin precio se incluyen con costo: null.
+ * SKU generado secuencial ENG-001, ENG-002, ... porque el archivo no tiene SKU propio.
  */
 function parsearEngatel(buffer) {
   const wb   = XLSX.read(buffer, { type: 'buffer' });
   const ws   = wb.Sheets[wb.SheetNames[0]];
   const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
 
-  const skusVistos = new Set();
+  let skuIdx   = 1;
   const productos  = [];
 
   for (const row of rows) {
@@ -40,16 +29,8 @@ function parsearEngatel(buffer) {
     const precioNum = Number(rawPrecio);
     const costo = (!isNaN(precioNum) && precioNum > 0) ? precioNum : null;
 
-    let sku = generarSku(nombre);
-    if (skusVistos.has(sku)) {
-      let n = 2;
-      while (skusVistos.has(`${sku}-${n}`)) n++;
-      sku = `${sku}-${n}`;
-    }
-    skusVistos.add(sku);
-
     productos.push({
-      sku,
+      sku:    `ENG-${String(skuIdx++).padStart(3, '0')}`,
       nombre,
       marca:  'Engatel',
       barras: null,
