@@ -267,6 +267,21 @@ router.delete('/:id', requireAdmin, async (req, res) => {
   }
 });
 
+// DELETE /api/proveedores/:id/productos  — borra todos los productos del proveedor
+router.delete('/:id/productos', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const proveedor = await prisma.proveedor.findFirst({ where: { OR: [{ id }, { slug: id }] } });
+    if (!proveedor) return res.status(404).json({ error: 'Proveedor no encontrado' });
+
+    const { count } = await prisma.producto.deleteMany({ where: { proveedorId: proveedor.id } });
+    res.json({ mensaje: `${count} productos eliminados`, proveedor: proveedor.slug });
+  } catch (err) {
+    console.error('DELETE /proveedores/:id/productos error:', err);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
 // GET /api/proveedores/:id/productos?q=&page=1&limit=50
 router.get('/:id/productos', requireAdmin, async (req, res) => {
   try {
