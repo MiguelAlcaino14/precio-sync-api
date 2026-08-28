@@ -56,7 +56,7 @@ const EXT_PERMITIDAS = new Set(['xlsx', 'xls', 'xlsm', 'csv', 'pdf', 'docx', 'do
 
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 50 * 1024 * 1024 },
+  limits: { fileSize: 100 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     const ext = file.originalname.split('.').pop().toLowerCase();
     if (!EXT_PERMITIDAS.has(ext) || !MIME_PERMITIDOS.has(file.mimetype)) {
