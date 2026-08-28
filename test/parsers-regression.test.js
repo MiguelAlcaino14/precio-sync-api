@@ -13,6 +13,7 @@ const files = {
   rhein: 'C:/Users/Percy Rojas/Downloads/RHEIN_LIBRERIA_PRECIO 2026.xlsx',
   maxell: 'C:/Users/Percy Rojas/Downloads/MAXELL_TECNO_PRECIO AGOSTO 2026.xlsx',
   rem: 'C:/Users/Percy Rojas/Downloads/REM_LIBRERIA_PRECIO 2026.xlsx',
+  torre: 'C:/Users/Percy Rojas/Downloads/TORRE_LIBRERIA_PRECIO JUNIO 2026.xlsx',
   libesa: 'C:/Users/Percy Rojas/Downloads/LIBESA_LIBRERIA_PRECIO MAYO 2026.xlsx',
   pronobelLib: 'C:/Users/Percy Rojas/Downloads/PRONOBEL_LIBRERIA_PRECIO ENERO 2026.xlsx',
   pronobelTec: 'C:/Users/Percy Rojas/Downloads/PRONOBEL_TECNOLOGIA_PRECIO MARZO 2026.xlsx',
@@ -132,6 +133,27 @@ regressionTest('REM usa precio con descuento y omite filas Familia', async () =>
   assert.equal(bySku(productos, '7100592').costo, 11903);
   assert.equal(bySku(productos, 'Familia: BLOCK DE BORRADOR.'), undefined);
   assertClean(productos);
+});
+
+regressionTest('Torre usa la hoja vigente, detecta columna precio con fecha y deduplica SKU', async () => {
+  const { productos } = await parsearArchivo(read(files.torre), 'xlsx', {
+    tipo: 'torre',
+    hoja: 'PRECIOS VIGENTE',
+    colSku: 'Cod.',
+    colNombre: 'Descripción Material',
+    colPrecio: 'PRECIO           01-06-2026',
+    colBarras: 'Codigo EAN',
+    colMarca: 'Sector',
+    colUnidadesCaja: 'Uni Caja',
+    colUnidadesPallet: 'Uni Pallet',
+  }, 'torre-colon');
+
+  assert.equal(productos.length, 2225);
+  assert.equal(bySku(productos, '29705').costo, 1455);
+  assert.equal(bySku(productos, '35289').costo, 3670);
+  assert.equal(bySku(productos, '37065').costo, 2982);
+  assertClean(productos);
+  assert.equal(productos.filter(p => p.sku === '35289').length, 1);
 });
 
 regressionTest('parsers existentes de Libesa y Pronobel siguen limpios', async () => {

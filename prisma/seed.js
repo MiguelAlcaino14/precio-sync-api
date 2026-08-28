@@ -89,13 +89,7 @@ const LIBRERIA = [
   // Configs detalladas (xlsx con precioIncluyeIVA)
   {
     nombre: 'TORRE', slug: 'torre-colon',
-    config: {
-      tipo: 'xlsx', hoja: 0,
-      colSku: 'Cod.', colPrecio: ['PVC MAYORISTA', 'PRECIO MAYORISTA'],
-      colNombre: 'Descripción Material', colMarca: 'Sector',
-      colUnidadesCaja: 'Uni Caja', colUnidadesPallet: 'Uni Pallet',
-      precioIncluyeIVA: false,
-    },
+    config: { tipo: 'torre' },
   },
 ];
 

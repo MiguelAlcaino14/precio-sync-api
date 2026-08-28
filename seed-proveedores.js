@@ -179,9 +179,7 @@ const PROVEEDORES = [
     slug:   'torre',
     tema:   'libreria',
     descuento: 0,
-    // hoja "BTS26", headers fila 1: Nº Set. | Sector | Cod. | Descripción Material | Codigo EAN | UMV | Uni Caja | Uni Pallet | NUEVO | ´PRECIO MAYORISTA ...
-    // El acento en "´PRECIO MAYORISTA" lo normaliza el parser (strip leading non-letter)
-    config: { colSku: 'Cod.', colNombre: 'Descripción Material', colPrecio: 'PRECIO MAYORISTA', colBarras: 'Codigo EAN', hoja: 'BTS26' },
+    config: { tipo: 'torre' },
   },
   {
     nombre: 'Vieri',
