@@ -17,6 +17,7 @@ const { parsearAutodetect }  = require('./autodetect.parser');
 const { parsearChilena }     = require('./chilena.parser');
 const { parsearLlabres }     = require('./llabres.parser');
 const { parsearArtline }     = require('./artline.parser');
+const { parsearHalley }      = require('./halley.parser');
 const { parsearTeknofas }    = require('./teknofas.parser');
 const { parsearAdioffice }   = require('./adioffice.parser');
 const { parsearRem }         = require('./rem.parser');
@@ -69,6 +70,7 @@ async function parsearArchivo(buffer, tipo, config, proveedorSlug) {
   if (config?.tipo === 'chilena')      return { productos: parsearChilena(buffer),                    sugerencia: null };
   if (config?.tipo === 'llabres')      return { productos: await parsearLlabres(buffer),              sugerencia: null };
   if (config?.tipo === 'artline')      return { productos: parsearArtline(buffer),                    sugerencia: null };
+  if (config?.tipo === 'halley')       return { productos: parsearHalley(buffer),                     sugerencia: null };
   if (config?.tipo === 'teknofas')     return { productos: parsearTeknofas(buffer, config),           sugerencia: null };
   if (config?.tipo === 'adioffice')    return { productos: parsearAdioffice(buffer, config),          sugerencia: null };
   if (config?.tipo === 'rem')          return { productos: parsearRem(buffer, config),                sugerencia: null };
