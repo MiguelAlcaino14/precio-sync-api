@@ -38,11 +38,14 @@ function parsearHoja(filas, nombreHoja) {
 
   if (iSku === -1 || iNombre === -1 || iPrecio === -1) return [];
 
+  const skuHeaderText = norm(String(headers[iSku])); // ej: 'codigo adetec'
   const productos = [];
   for (let i = idxHeader + 1; i < filas.length; i++) {
     const f   = filas[i];
     const sku = String(f[iSku] || '').trim();
     if (!sku) continue;
+    // Saltar filas de header repetidas dentro de la hoja (ej: Zebra repite el header 22 veces)
+    if (norm(sku) === skuHeaderText) continue;
 
     const costoRaw = Number(String(f[iPrecio] || '').replace(/[^0-9.,]/g, '').replace(',', '.'));
     const costo = (!isNaN(costoRaw) && costoRaw > 0) ? costoRaw : null;
