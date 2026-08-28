@@ -274,8 +274,24 @@ router.delete('/:id/productos', requireAdmin, async (req, res) => {
     const proveedor = await prisma.proveedor.findFirst({ where: { OR: [{ id }, { slug: id }] } });
     if (!proveedor) return res.status(404).json({ error: 'Proveedor no encontrado' });
 
-    const { count } = await prisma.producto.deleteMany({ where: { proveedorId: proveedor.id } });
-    res.json({ mensaje: `${count} productos eliminados`, proveedor: proveedor.slug });
+    const productos = await prisma.producto.findMany({
+      where: { proveedorId: proveedor.id },
+      select: { id: true },
+    });
+    const ids = productos.map(p => p.id);
+
+    if (ids.length > 0) {
+      await prisma.$transaction([
+        prisma.precioCosto.deleteMany({ where: { productoId: { in: ids } } }),
+        prisma.precioVenta.deleteMany({ where: { productoId: { in: ids } } }),
+        prisma.cambioPendiente.deleteMany({ where: { productoId: { in: ids } } }),
+        prisma.ofertaProducto.deleteMany({ where: { productoId: { in: ids } } }),
+        prisma.oferta.updateMany({ where: { productoId: { in: ids } }, data: { productoId: null } }),
+        prisma.producto.deleteMany({ where: { id: { in: ids } } }),
+      ]);
+    }
+
+    res.json({ mensaje: `${ids.length} productos eliminados`, proveedor: proveedor.slug });
   } catch (err) {
     console.error('DELETE /proveedores/:id/productos error:', err);
     res.status(500).json({ error: 'Error interno del servidor' });
