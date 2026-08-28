@@ -13,7 +13,7 @@ const LIBRERIA = [
 
   // PDF / IA
   { nombre: 'Halley',   slug: 'halley',   driveFolderId: '1jacb2M3l4VsRr9mJBvBXaJYemjEBtO4-', config: { tipo: 'ia', hint: 'El encabezado dice "VALORES MAS IVA", lo que significa que los precios listados YA INCLUYEN IVA. Divide cada precio por 1.19 para obtener el precio neto. Formato de precio: "$755" → divide por 1.19 → 635 neto. No hay SKU numérico; genera un código corto desde las primeras palabras del nombre del producto.' } },
-  { nombre: 'REM MAX',  slug: 'rem-max',  config: {} },
+  { nombre: 'REM MAX',  slug: 'rem-max',  config: { tipo: 'rem' } },
   { nombre: 'TECNIGOM', slug: 'tecnigom', driveFolderId: '1UL9yv58kaTEmbUubH4bI3fz9i4W3pYOl', config: { tipo: 'ia', hint: 'Catálogo en formato de bloques (no tabular). Cada producto tiene: "COD. XXXXXX" (SKU), "PRECIO: $ YYY" (precio unitario neto sin IVA), y un nombre de producto en el bloque. Extrae el SKU del campo "COD.", el precio del campo "PRECIO:", y el nombre del encabezado del bloque o línea descriptiva.' } },
 
   // IA (multi-hoja o estructura variable)
@@ -29,30 +29,24 @@ const LIBRERIA = [
   },
   {
     nombre: 'Libesa', slug: 'libesa',
-    config: { configs: [
-      { colSku: 'Descripción', colNombre: 'Lote Venta',   colPrecio: ['NUEVO PRECIO LICITACION', 'P. LICITACIÓN', 'P. NETO ANTERIOR', 'Precio Neto'], colMarca: 'Marca', colBarras: 'Cod barra' },
-      { colSku: 'Código',      colNombre: 'Descripción',  colPrecio: 'Precio Neto', colBarras: 'Cod barra' },
-      { colSku: 'Código',      colNombre: 'Descripción',  colPrecio: 'Precio', hoja: 0, colBarras: 'Cod barra' },
-    ], hint: 'Lista de precios Libesa. Puede ser formato licitaciones (SKU en columna "Descripción", nombre en "Lote Venta") o formato aseo (SKU en "Código", nombre en "Descripción"). Precio neto sin IVA, en CLP. Ignorar filas con errores (#ERROR!) o precio 0. Extraer solo filas con SKU, nombre y precio válidos.' },
+    config: { tipo: 'libesa' },
   },
   {
     nombre: 'Pronobel', slug: 'pronobel',
-    config: { configs: [
-      { colSku: 'CODIGO',   colNombre: 'Texto breve material', colPrecio: 'FINAL NETO',                              colMarca: 'Marca', colBarras: 'BARRAS', colUnidadesCaja: 'SUB', colUnidadesPallet: 'EMB' },
-      { colSku: 'Material', colNombre: 'Texto breve material', colPrecio: ['CASTILLA Y ARAGON', 'CASTILLA ARAGON'],  colMarca: 'Marca', colBarras: 'BARRAS', colUnidadesCaja: 'SUB', colUnidadesPallet: 'EMB' },
-      { colSku: 'CODIGO',   colNombre: 'DESCRIPCION',          colPrecio: '$ NETO',                                 colBarras: 'BARRAS', colUnidadesCaja: 'SUB', colUnidadesPallet: 'EMB' },
-    ] },
+    config: { tipo: 'pronobel' },
   },
   {
     nombre: 'Teknofas', slug: 'teknofas',
-    config: { colSku: 'CODIGO', colNombre: 'DESCRIPCION', colPrecio: 'Precio unit.', colUnidadesCaja: 'UNID X CAJA' },
+    config: { tipo: 'teknofas', colPrecio: 'Precio unit.' },
   },
 
   // Excel genérico
   {
     nombre: 'Adioffice', slug: 'adioffice',
-    config: { colSku: 'GP', colNombre: 'DESCRIPCIÓN', colPrecio: 'CC', colUnidadesCaja: 'U X CAJA' },
+    config: { tipo: 'adioffice' },
   },
+  { nombre: 'RHEIN',  slug: 'rhein',  config: { tipo: 'rhein' } },
+  { nombre: 'MAXELL', slug: 'maxell', config: { tipo: 'maxell' } },
   {
     nombre: 'ARON', slug: 'aron',
     config: { colSku: 'CODIGO', colNombre: 'DESCRIPCION ARTICULO', colPrecio: 'NETO FINAL', colUnidadesCaja: 'CAJA' },
@@ -80,7 +74,7 @@ const LIBRERIA = [
   },
   {
     nombre: 'JM Azcorbebeitia', slug: 'jm-azcorbebeitia',
-    config: { colSku: 'Código', colNombre: 'Descripción', colPrecio: 'Precio Neto', colBarras: 'Ean', colMarca: 'SuperFamilia' },
+    config: { colSku: 'Código', colNombre: 'Descripción', colPrecio: 'PRECIO CON DCTO 20%', colBarras: 'Ean', colMarca: 'SuperFamilia' },
   },
   {
     nombre: 'Offione', slug: 'offione',

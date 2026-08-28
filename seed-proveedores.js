@@ -49,7 +49,7 @@ const PROVEEDORES = [
     slug:   'rem-max',
     tema:   'libreria',
     descuento: 0,
-    config: { tipo: 'ia' },
+    config: { tipo: 'rem' },
   },
   {
     nombre: 'TECNIGOM',
@@ -79,21 +79,21 @@ const PROVEEDORES = [
     slug:   'libesa',
     tema:   'libreria',
     descuento: 0,
-    config: { tipo: 'ia' }, // múltiples hojas; la hoja con precios varía
+    config: { tipo: 'libesa' },
   },
   {
     nombre: 'Pronobel',
     slug:   'pronobel',
     tema:   'libreria',
     descuento: 0,
-    config: { tipo: 'ia' }, // envía archivos separados (tecnología vs. librería)
+    config: { tipo: 'pronobel' },
   },
   {
     nombre: 'Teknofas',
     slug:   'teknofas',
     tema:   'libreria',
     descuento: 0,
-    config: { tipo: 'ia' }, // precio por millar (no por unidad), requiere lógica especial
+    config: { tipo: 'teknofas', colPrecio: 'Precio unit.' },
   },
 
   // ── Excel genérico (colSku / colNombre / colPrecio) ───────────────────────
@@ -102,9 +102,21 @@ const PROVEEDORES = [
     slug:   'adioffice',
     tema:   'libreria',
     descuento: 0,
-    // Hoja1, headers fila 7: GP | DESCRIPCIÓN | Vta. Min. | U X CAJA | CC
-    // CC = precio negociado Castilla & Aragón
-    config: { colSku: 'GP', colNombre: 'DESCRIPCIÓN', colPrecio: 'CC' },
+    config: { tipo: 'adioffice' },
+  },
+  {
+    nombre: 'RHEIN',
+    slug:   'rhein',
+    tema:   'libreria',
+    descuento: 0,
+    config: { tipo: 'rhein' },
+  },
+  {
+    nombre: 'MAXELL',
+    slug:   'maxell',
+    tema:   'libreria',
+    descuento: 0,
+    config: { tipo: 'maxell' },
   },
   {
     nombre: 'ARON',
@@ -151,8 +163,7 @@ const PROVEEDORES = [
     slug:   'jm-azcorbebeitia',
     tema:   'libreria',
     descuento: 0, // "COSTO CASTILLA" es el precio ya negociado para este cliente
-    // headers fila 0: Código | Ean | Descripción | Stock | Precio Neto | COSTO CASTILLA | SuperFamilia | Familia
-    config: { colSku: 'Código', colNombre: 'Descripción', colPrecio: 'COSTO CASTILLA', colBarras: 'Ean' },
+    config: { colSku: 'Código', colNombre: 'Descripción', colPrecio: 'PRECIO CON DCTO 20%', colBarras: 'Ean' },
   },
   {
     nombre: 'Offione',

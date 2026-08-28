@@ -16,7 +16,15 @@ const { parsearPronobel }    = require('./pronobel.parser');
 const { parsearAutodetect }  = require('./autodetect.parser');
 const { parsearChilena }     = require('./chilena.parser');
 const { parsearLlabres }     = require('./llabres.parser');
+<<<<<<< Updated upstream
 const { parsearArtline }     = require('./artline.parser');
+=======
+const { parsearTeknofas }    = require('./teknofas.parser');
+const { parsearAdioffice }   = require('./adioffice.parser');
+const { parsearRem }         = require('./rem.parser');
+const { parsearRhein }       = require('./rhein.parser');
+const { parsearMaxell }      = require('./maxell.parser');
+>>>>>>> Stashed changes
 
 const tieneApiKey = () => !!process.env.OPENAI_API_KEY;
 
@@ -34,7 +42,15 @@ const PARSER_TIPOS = [
   { tipo: 'pronobel',    label: 'Pronobel',          formatos: ['xlsx'] },
   { tipo: 'chilena',     label: 'Chilenamayorista',  formatos: ['xlsx'] },
   { tipo: 'llabres',     label: 'Llabres',           formatos: ['pdf'] },
+<<<<<<< Updated upstream
   { tipo: 'artline',    label: 'Artline',            formatos: ['xlsx'] },
+=======
+  { tipo: 'teknofas',    label: 'Teknofas',          formatos: ['xls', 'xlsx'] },
+  { tipo: 'adioffice',   label: 'Adioffice',         formatos: ['xlsx'] },
+  { tipo: 'rem',         label: 'REM MAX',           formatos: ['xlsx'] },
+  { tipo: 'rhein',       label: 'Rhein',             formatos: ['xlsx'] },
+  { tipo: 'maxell',      label: 'Maxell',            formatos: ['xlsx'] },
+>>>>>>> Stashed changes
   { tipo: 'ia',          label: 'IA (automático)',   formatos: ['xlsx', 'xls', 'csv', 'pdf', 'ppt', 'pptx'] },
 ];
 
@@ -58,7 +74,15 @@ async function parsearArchivo(buffer, tipo, config, proveedorSlug) {
   if (config?.tipo === 'pronobel')     return { productos: parsearPronobel(buffer),                  sugerencia: null };
   if (config?.tipo === 'chilena')      return { productos: parsearChilena(buffer),                    sugerencia: null };
   if (config?.tipo === 'llabres')      return { productos: await parsearLlabres(buffer),              sugerencia: null };
+<<<<<<< Updated upstream
   if (config?.tipo === 'artline')      return { productos: parsearArtline(buffer),                    sugerencia: null };
+=======
+  if (config?.tipo === 'teknofas')     return { productos: parsearTeknofas(buffer, config),           sugerencia: null };
+  if (config?.tipo === 'adioffice')    return { productos: parsearAdioffice(buffer, config),          sugerencia: null };
+  if (config?.tipo === 'rem')          return { productos: parsearRem(buffer, config),                sugerencia: null };
+  if (config?.tipo === 'rhein')        return { productos: parsearRhein(buffer),                      sugerencia: null };
+  if (config?.tipo === 'maxell')       return { productos: parsearMaxell(buffer),                     sugerencia: null };
+>>>>>>> Stashed changes
 
   if (config?.tipo === 'ia') {
     // PPT/PPTX: parsearConIA no los soporta; extraer texto localmente + IA
