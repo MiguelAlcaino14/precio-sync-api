@@ -450,7 +450,18 @@ router.post('/:id/importar', requireAdmin, importLimiter, upload.single('archivo
 async function procesarArchivo(archivoId, proveedor, buffer, tipo, nombreArchivo) {
   console.log(`[procesarArchivo] inicio archivoId=${archivoId} proveedor=${proveedor.slug} tipo=${tipo}`);
   try {
-    const { productos, sugerencia } = await parsearArchivo(buffer, tipo, proveedor.config, proveedor.slug);
+    const { productos: productosRaw, sugerencia } = await parsearArchivo(buffer, tipo, proveedor.config, proveedor.slug);
+
+    // Generar SKU automático para productos que no lo tienen
+    const prefijo = proveedor.slug.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+    let skuIdx = 1;
+    const productos = productosRaw.map(p => {
+      if (!p.sku || !String(p.sku).trim()) {
+        return { ...p, sku: `${prefijo}-${String(skuIdx++).padStart(3, '0')}` };
+      }
+      return p;
+    });
+
     console.log(`[procesarArchivo] parser OK productos=${productos.length}`);
 
     // Obtener mapa JumpSeller para validar que los productos existen antes de procesarlos
