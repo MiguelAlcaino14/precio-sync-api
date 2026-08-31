@@ -290,6 +290,19 @@ router.post('/:id/restaurar', async (req, res) => {
   }
 });
 
+// POST /api/mapeo/:id/aceptar — restaura al estado correcto: confirmado si ya tiene vínculo JS, pendiente si no
+router.post('/:id/aceptar', async (req, res) => {
+  try {
+    const mapeo = await prisma.mapeoSku.findUnique({ where: { id: req.params.id } });
+    if (!mapeo) return res.status(404).json({ error: 'Mapeo no encontrado' });
+    const nuevoEstado = mapeo.jumpsellerProductId ? 'confirmado' : 'pendiente';
+    res.json(await prisma.mapeoSku.update({ where: { id: req.params.id }, data: { estado: nuevoEstado } }));
+  } catch (err) {
+    console.error('POST /mapeo/:id/aceptar error:', err);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
 // POST /api/mapeo/:id/links — agregar vínculo JumpSeller extra
 router.post('/:id/links', async (req, res) => {
   try {

@@ -24,6 +24,7 @@ const { parsearRem }         = require('./rem.parser');
 const { parsearRhein }       = require('./rhein.parser');
 const { parsearMaxell }      = require('./maxell.parser');
 const { parsearTorre }       = require('./torre.parser');
+const { parsearArcadia }     = require('./arcadia.parser');
 
 const tieneApiKey = () => !!process.env.OPENAI_API_KEY;
 
@@ -48,6 +49,7 @@ const PARSER_TIPOS = [
   { tipo: 'rhein',       label: 'Rhein',             formatos: ['xlsx'] },
   { tipo: 'maxell',      label: 'Maxell',            formatos: ['xlsx'] },
   { tipo: 'torre',       label: 'Torre',             formatos: ['xlsx'] },
+  { tipo: 'arcadia',     label: 'Arcadia',           formatos: ['xlsx'] },
   { tipo: 'ia',          label: 'IA (automático)',   formatos: ['xlsx', 'xls', 'csv', 'pdf', 'ppt', 'pptx'] },
 ];
 
@@ -79,6 +81,7 @@ async function parsearArchivo(buffer, tipo, config, proveedorSlug) {
   if (config?.tipo === 'rhein')        return { productos: parsearRhein(buffer),                      sugerencia: null };
   if (config?.tipo === 'maxell')       return { productos: parsearMaxell(buffer),                     sugerencia: null };
   if (config?.tipo === 'torre')        return { productos: parsearTorre(buffer),                      sugerencia: null };
+  if (config?.tipo === 'arcadia')      return { productos: parsearArcadia(buffer),                    sugerencia: null };
 
   if (config?.tipo === 'ia') {
     // PPT/PPTX: parsearConIA no los soporta; extraer texto localmente + IA
