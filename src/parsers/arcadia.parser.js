@@ -26,7 +26,7 @@ function parsearArcadia(buffer) {
       nombre: nombre.slice(0, 255),
       marca:  'Arcadia',
       barras: null,
-      costo:  precio,
+      costo:  Math.round(precio),
       unidadesCaja,
       unidadesPallet,
       categoria: unidadesCaja > 1 ? 'caja' : 'unidad',
