@@ -89,6 +89,8 @@ function parsearExcelConConfig(buffer, config) {
     const f = filas[i];
     const sku = String(f[iSku] || '').trim();
     if (!sku) continue;
+    // Saltar filas de encabezado repetidas (el SKU es el mismo texto que el header de la columna)
+    if (norm(sku) === norm(headers[iSku])) continue;
     const nombre = String(f[iNombre] || '').trim();
     if (!nombre) continue;
 
