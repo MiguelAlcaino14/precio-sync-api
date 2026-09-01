@@ -191,6 +191,7 @@ router.post('/detectar-conflictos', async (req, res) => {
     const duplicados = await prisma.$queryRaw`
       SELECT "skuProveedor"
       FROM "MapeoSku"
+      WHERE estado != 'ignorado'
       GROUP BY "skuProveedor"
       HAVING COUNT(DISTINCT "proveedorId") > 1
     `;
