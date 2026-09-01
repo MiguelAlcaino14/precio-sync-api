@@ -100,7 +100,7 @@ function parsearExcelConConfig(buffer, config) {
         costoRaw.replace(/\$/g, '').replace(/\./g, '').replace(',', '.').trim()
       );
     }
-    const costo = (costoRaw && !isNaN(costoRaw) && costoRaw > 0) ? costoRaw : null;
+    const costo = (costoRaw && !isNaN(costoRaw) && costoRaw > 0) ? Math.round(costoRaw) : null;
 
     const parseUnidades = v => { const n = parseInt(v); return n > 1 && n <= 10000 ? n : null; };
     const unidadesCaja   = iUnidadesCaja  >= 0 ? parseUnidades(f[iUnidadesCaja])  : null;
