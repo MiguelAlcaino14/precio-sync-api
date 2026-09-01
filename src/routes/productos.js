@@ -76,7 +76,7 @@ router.get('/', async (req, res) => {
       }
 
       // Paso 2: aplicar filtros de proveedor/tema sobre los IDs que coinciden
-      const filterWhere = { id: { in: matchIds }, activo: true };
+      const filterWhere = { id: { in: matchIds } };
       if (provId) filterWhere.proveedorId = provId;
       if (tema)   filterWhere.proveedor   = { tema };
 
@@ -119,7 +119,7 @@ router.get('/', async (req, res) => {
     }
 
     // Sin búsqueda: orden alfabético normal
-    const where = { activo: true };
+    const where = {};
     if (provId) where.proveedorId = provId;
     if (tema)   where.proveedor   = { tema };
 
