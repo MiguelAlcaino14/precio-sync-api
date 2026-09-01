@@ -91,8 +91,19 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Error interno del servidor' });
 });
 
-app.listen(PORT, () => {
-  console.log(`API corriendo en http://localhost:${PORT}`);
-  desactivarOfertasVencidas();
-  setInterval(desactivarOfertasVencidas, 60 * 60 * 1000); // cada hora
-});
+async function startServer() {
+  try {
+    await prisma.$executeRaw`ALTER TABLE "Producto" ADD COLUMN IF NOT EXISTS "activo" BOOLEAN NOT NULL DEFAULT true`;
+    console.log('DB schema OK: columna activo lista');
+  } catch (err) {
+    console.error('Advertencia: no se pudo garantizar columna activo:', err.message);
+  }
+
+  app.listen(PORT, () => {
+    console.log(`API corriendo en http://localhost:${PORT}`);
+    desactivarOfertasVencidas();
+    setInterval(desactivarOfertasVencidas, 60 * 60 * 1000);
+  });
+}
+
+startServer();

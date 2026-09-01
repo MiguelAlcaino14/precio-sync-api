@@ -148,6 +148,7 @@ router.get('/', async (req, res) => {
 // POST /api/productos/recalcular-activos — resync campo activo desde mapeos reales
 router.post('/recalcular-activos', async (req, res) => {
   try {
+    await prisma.$executeRaw`ALTER TABLE "Producto" ADD COLUMN IF NOT EXISTS "activo" BOOLEAN NOT NULL DEFAULT true`;
     const productos = await prisma.producto.findMany({ select: { sku: true } });
     let actualizados = 0;
     for (const p of productos) {
