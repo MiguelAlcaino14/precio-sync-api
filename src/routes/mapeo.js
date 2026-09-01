@@ -273,7 +273,32 @@ router.post('/:id/confirmar', async (req, res) => {
 // POST /api/mapeo/:id/ignorar
 router.post('/:id/ignorar', async (req, res) => {
   try {
-    res.json(await prisma.mapeoSku.update({ where: { id: req.params.id }, data: { estado: 'ignorado' } }));
+    const ignorado = await prisma.mapeoSku.update({ where: { id: req.params.id }, data: { estado: 'ignorado' } });
+
+    // Rechazar cambioPendiente del producto ignorado para que desaparezca del dashboard
+    const productoIgnorado = await prisma.producto.findFirst({
+      where: { proveedorId: ignorado.proveedorId, sku: ignorado.skuProveedor },
+      select: { id: true },
+    });
+    if (productoIgnorado) {
+      await prisma.cambioPendiente.updateMany({
+        where: { productoId: productoIgnorado.id, estado: 'pendiente' },
+        data:  { estado: 'rechazado' },
+      });
+    }
+
+    // Si queda exactamente 1 ambiguo con el mismo SKU, auto-resolverlo
+    let autoResuelto = null;
+    const restantes = await prisma.mapeoSku.findMany({
+      where: { skuProveedor: ignorado.skuProveedor, estado: 'ambiguo', id: { not: req.params.id } },
+    });
+    if (restantes.length === 1) {
+      const unico = restantes[0];
+      const nuevoEstado = unico.jumpsellerProductId ? 'confirmado' : 'pendiente';
+      autoResuelto = await prisma.mapeoSku.update({ where: { id: unico.id }, data: { estado: nuevoEstado }, include: INCLUDE_PROVEEDOR });
+    }
+
+    res.json({ ignorado, autoResuelto });
   } catch (err) {
     console.error('POST /mapeo/:id/ignorar error:', err);
     res.status(500).json({ error: 'Error interno del servidor' });
