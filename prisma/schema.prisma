@@ -208,6 +208,7 @@ model MapeoSku {
   links     MapeoSkuLink[]
 
   @@unique([proveedorId, skuProveedor])
+  @@index([skuProveedor, estado])
 }
 
 model MapeoSkuLink {
