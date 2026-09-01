@@ -287,7 +287,7 @@ router.post('/:id/ignorar', async (req, res) => {
       });
     }
 
-    // Si queda exactamente 1 ambiguo con el mismo SKU, auto-resolverlo
+    // Si queda exactamente 1 activo con el mismo SKU, auto-resolverlo y reasignar el producto
     let autoResuelto = null;
     const restantes = await prisma.mapeoSku.findMany({
       where: { skuProveedor: ignorado.skuProveedor, estado: { in: ['ambiguo', 'pendiente'] }, id: { not: req.params.id } },
@@ -296,6 +296,12 @@ router.post('/:id/ignorar', async (req, res) => {
       const unico = restantes[0];
       const nuevoEstado = unico.jumpsellerProductId ? 'confirmado' : 'pendiente';
       autoResuelto = await prisma.mapeoSku.update({ where: { id: unico.id }, data: { estado: nuevoEstado }, include: INCLUDE_PROVEEDOR });
+
+      // Reasignar el producto al proveedor correcto (el que quedó activo)
+      await prisma.producto.updateMany({
+        where: { sku: ignorado.skuProveedor, proveedorId: ignorado.proveedorId },
+        data:  { proveedorId: unico.proveedorId },
+      });
     }
 
     res.json({ ignorado, autoResuelto });
