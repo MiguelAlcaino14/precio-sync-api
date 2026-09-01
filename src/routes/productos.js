@@ -149,13 +149,16 @@ router.get('/', async (req, res) => {
 router.post('/recalcular-activos', async (req, res) => {
   try {
     await prisma.$executeRaw`ALTER TABLE "Producto" ADD COLUMN IF NOT EXISTS "activo" BOOLEAN NOT NULL DEFAULT true`;
-    const productos = await prisma.producto.findMany({ select: { sku: true } });
-    let actualizados = 0;
-    for (const p of productos) {
-      await actualizarActivoProducto(p.sku);
-      actualizados++;
-    }
-    res.json({ actualizados });
+    const result = await prisma.$executeRaw`
+      UPDATE "Producto" p
+      SET "activo" = (
+        SELECT COUNT(*) > 0
+        FROM "MapeoSku" m
+        WHERE m."skuProveedor" = p.sku
+          AND m.estado != 'ignorado'
+      )
+    `;
+    res.json({ actualizados: result });
   } catch (err) {
     console.error('POST /productos/recalcular-activos error:', err);
     res.status(500).json({ error: 'Error interno del servidor' });
