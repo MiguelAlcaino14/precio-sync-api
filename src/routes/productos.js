@@ -1,6 +1,7 @@
 const express = require('express');
 const prisma  = require('../db');
 const { calcularPrecioConReglas, sortReglas } = require('../services/markup.service');
+const { actualizarActivoProducto } = require('../services/producto.service');
 
 const router = express.Router();
 
@@ -55,14 +56,6 @@ router.get('/', async (req, res) => {
     const tema   = String(req.query.tema        || '').trim();
     const provId = String(req.query.proveedorId || '').trim();
 
-    // Excluir productos donde TODOS sus mapeos están ignorados
-    const todosIgnorados = await prisma.$queryRaw`
-      SELECT p.id FROM "Producto" p
-      WHERE EXISTS (SELECT 1 FROM "MapeoSku" m WHERE m."skuProveedor" = p.sku)
-      AND NOT EXISTS (SELECT 1 FROM "MapeoSku" m WHERE m."skuProveedor" = p.sku AND m.estado != 'ignorado')
-    `;
-    const idsExcluidos = todosIgnorados.map(r => r.id);
-
     if (q) {
       // Paso 1: obtener IDs que coinciden (insensible a tildes si unaccent disponible)
       let matchIds;
@@ -83,8 +76,7 @@ router.get('/', async (req, res) => {
       }
 
       // Paso 2: aplicar filtros de proveedor/tema sobre los IDs que coinciden
-      const filteredIds = idsExcluidos.length ? matchIds.filter(id => !idsExcluidos.includes(id)) : matchIds;
-      const filterWhere = { id: { in: filteredIds } };
+      const filterWhere = { id: { in: matchIds }, activo: true };
       if (provId) filterWhere.proveedorId = provId;
       if (tema)   filterWhere.proveedor   = { tema };
 
@@ -127,8 +119,7 @@ router.get('/', async (req, res) => {
     }
 
     // Sin búsqueda: orden alfabético normal
-    const where = {};
-    if (idsExcluidos.length) where.id = { notIn: idsExcluidos };
+    const where = { activo: true };
     if (provId) where.proveedorId = provId;
     if (tema)   where.proveedor   = { tema };
 
@@ -150,6 +141,22 @@ router.get('/', async (req, res) => {
     res.json({ productos, total, totalPaginas: Math.ceil(total / limit) || 1 });
   } catch (err) {
     console.error('GET /productos error:', err);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// POST /api/productos/recalcular-activos — resync campo activo desde mapeos reales
+router.post('/recalcular-activos', async (req, res) => {
+  try {
+    const productos = await prisma.producto.findMany({ select: { sku: true } });
+    let actualizados = 0;
+    for (const p of productos) {
+      await actualizarActivoProducto(p.sku);
+      actualizados++;
+    }
+    res.json({ actualizados });
+  } catch (err) {
+    console.error('POST /productos/recalcular-activos error:', err);
     res.status(500).json({ error: 'Error interno del servidor' });
   }
 });

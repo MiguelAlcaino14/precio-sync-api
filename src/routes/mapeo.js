@@ -3,6 +3,7 @@ const router   = express.Router();
 const prisma   = require('../db');
 const { construirMapas } = require('../services/jumpseller.service');
 const { normSku } = require('../services/mapeo.service');
+const { actualizarActivoProducto } = require('../services/producto.service');
 
 // Cache JumpSeller (TTL 5 min, promise lock anti-race)
 let _mapaCache = null, _mapaCacheAt = 0, _mapaPromise = null;
@@ -307,6 +308,7 @@ router.post('/:id/ignorar', async (req, res) => {
       });
     }
 
+    await actualizarActivoProducto(ignorado.skuProveedor);
     res.json({ ignorado, autoResuelto });
   } catch (err) {
     console.error('POST /mapeo/:id/ignorar error:', err);
@@ -317,7 +319,9 @@ router.post('/:id/ignorar', async (req, res) => {
 // POST /api/mapeo/:id/restaurar
 router.post('/:id/restaurar', async (req, res) => {
   try {
-    res.json(await prisma.mapeoSku.update({ where: { id: req.params.id }, data: { estado: 'pendiente' } }));
+    const restaurado = await prisma.mapeoSku.update({ where: { id: req.params.id }, data: { estado: 'pendiente' } });
+    await actualizarActivoProducto(restaurado.skuProveedor);
+    res.json(restaurado);
   } catch (err) {
     console.error('POST /mapeo/:id/restaurar error:', err);
     res.status(500).json({ error: 'Error interno del servidor' });
