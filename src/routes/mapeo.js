@@ -197,7 +197,7 @@ router.post('/detectar-conflictos', async (req, res) => {
     const skus = duplicados.map(r => r.skuProveedor);
     if (!skus.length) return res.json({ marcados: 0, skusConflicto: 0 });
     const { count } = await prisma.mapeoSku.updateMany({
-      where: { skuProveedor: { in: skus }, estado: 'pendiente' },
+      where: { skuProveedor: { in: skus }, estado: { in: ['pendiente', 'confirmado'] } },
       data:  { estado: 'ambiguo' },
     });
     res.json({ marcados: count, skusConflicto: skus.length });
@@ -290,7 +290,7 @@ router.post('/:id/ignorar', async (req, res) => {
     // Si queda exactamente 1 ambiguo con el mismo SKU, auto-resolverlo
     let autoResuelto = null;
     const restantes = await prisma.mapeoSku.findMany({
-      where: { skuProveedor: ignorado.skuProveedor, estado: 'ambiguo', id: { not: req.params.id } },
+      where: { skuProveedor: ignorado.skuProveedor, estado: { in: ['ambiguo', 'pendiente'] }, id: { not: req.params.id } },
     });
     if (restantes.length === 1) {
       const unico = restantes[0];
