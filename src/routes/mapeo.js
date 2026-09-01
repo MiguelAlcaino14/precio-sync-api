@@ -297,10 +297,12 @@ router.post('/:id/ignorar', async (req, res) => {
       const nuevoEstado = unico.jumpsellerProductId ? 'confirmado' : 'pendiente';
       autoResuelto = await prisma.mapeoSku.update({ where: { id: unico.id }, data: { estado: nuevoEstado }, include: INCLUDE_PROVEEDOR });
 
-      // Reasignar el producto al proveedor correcto (el que quedó activo)
+      // Reasignar el producto al proveedor correcto (el que quedó activo) y actualizar nombre
+      const datosProducto = { proveedorId: unico.proveedorId };
+      if (unico.nombreProducto) datosProducto.nombre = unico.nombreProducto;
       await prisma.producto.updateMany({
         where: { sku: ignorado.skuProveedor, proveedorId: ignorado.proveedorId },
-        data:  { proveedorId: unico.proveedorId },
+        data:  datosProducto,
       });
     }
 
