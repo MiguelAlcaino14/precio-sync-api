@@ -55,6 +55,14 @@ router.get('/', async (req, res) => {
     const tema   = String(req.query.tema        || '').trim();
     const provId = String(req.query.proveedorId || '').trim();
 
+    // Excluir productos donde TODOS sus mapeos están ignorados
+    const todosIgnorados = await prisma.$queryRaw`
+      SELECT p.id FROM "Producto" p
+      WHERE EXISTS (SELECT 1 FROM "MapeoSku" m WHERE m."skuProveedor" = p.sku)
+      AND NOT EXISTS (SELECT 1 FROM "MapeoSku" m WHERE m."skuProveedor" = p.sku AND m.estado != 'ignorado')
+    `;
+    const idsExcluidos = todosIgnorados.map(r => r.id);
+
     if (q) {
       // Paso 1: obtener IDs que coinciden (insensible a tildes si unaccent disponible)
       let matchIds;
@@ -75,7 +83,8 @@ router.get('/', async (req, res) => {
       }
 
       // Paso 2: aplicar filtros de proveedor/tema sobre los IDs que coinciden
-      const filterWhere = { id: { in: matchIds } };
+      const filteredIds = idsExcluidos.length ? matchIds.filter(id => !idsExcluidos.includes(id)) : matchIds;
+      const filterWhere = { id: { in: filteredIds } };
       if (provId) filterWhere.proveedorId = provId;
       if (tema)   filterWhere.proveedor   = { tema };
 
@@ -119,6 +128,7 @@ router.get('/', async (req, res) => {
 
     // Sin búsqueda: orden alfabético normal
     const where = {};
+    if (idsExcluidos.length) where.id = { notIn: idsExcluidos };
     if (provId) where.proveedorId = provId;
     if (tema)   where.proveedor   = { tema };
 
