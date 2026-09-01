@@ -301,7 +301,7 @@ router.post('/:id/ignorar', async (req, res) => {
       const datosProducto = { proveedorId: unico.proveedorId };
       if (unico.nombreProducto) datosProducto.nombre = unico.nombreProducto;
       await prisma.producto.updateMany({
-        where: { sku: ignorado.skuProveedor, proveedorId: ignorado.proveedorId },
+        where: { sku: ignorado.skuProveedor },
         data:  datosProducto,
       });
     }
