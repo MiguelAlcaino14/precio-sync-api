@@ -3,7 +3,7 @@ const router   = express.Router();
 const prisma   = require('../db');
 const { construirMapas } = require('../services/jumpseller.service');
 const { normSku } = require('../services/mapeo.service');
-const { actualizarActivoProducto } = require('../services/producto.service');
+const { sincronizarProducto, sincronizarProductosBulk } = require('../services/producto.service');
 
 // Cache JumpSeller (TTL 5 min, promise lock anti-race)
 let _mapaCache = null, _mapaCacheAt = 0, _mapaPromise = null;
@@ -215,7 +215,10 @@ router.post('/bulk/ignorar', async (req, res) => {
     const ids = req.body.ids;
     if (!Array.isArray(ids) || !ids.length || ids.length > 500)
       return res.status(400).json({ error: 'ids debe ser un array de 1 a 500 elementos' });
+    const afectados = await prisma.mapeoSku.findMany({ where: { id: { in: ids } }, select: { skuProveedor: true } });
     const { count } = await prisma.mapeoSku.updateMany({ where: { id: { in: ids } }, data: { estado: 'ignorado' } });
+    const skus = [...new Set(afectados.map(m => m.skuProveedor))];
+    await sincronizarProductosBulk(skus);
     res.json({ actualizados: count });
   } catch (err) {
     console.error('POST /mapeo/bulk/ignorar error:', err);
@@ -229,7 +232,10 @@ router.post('/bulk/restaurar', async (req, res) => {
     const ids = req.body.ids;
     if (!Array.isArray(ids) || !ids.length || ids.length > 500)
       return res.status(400).json({ error: 'ids debe ser un array de 1 a 500 elementos' });
+    const afectados = await prisma.mapeoSku.findMany({ where: { id: { in: ids } }, select: { skuProveedor: true } });
     const { count } = await prisma.mapeoSku.updateMany({ where: { id: { in: ids } }, data: { estado: 'pendiente' } });
+    const skus = [...new Set(afectados.map(m => m.skuProveedor))];
+    await sincronizarProductosBulk(skus);
     res.json({ actualizados: count });
   } catch (err) {
     console.error('POST /mapeo/bulk/restaurar error:', err);
@@ -245,10 +251,13 @@ router.post('/bulk/confirmar', async (req, res) => {
       return res.status(400).json({ error: 'ids debe ser un array de 1 a 500 elementos' });
     if (!jumpsellerProductId || !Number.isInteger(jumpsellerProductId) || jumpsellerProductId <= 0)
       return res.status(400).json({ error: 'jumpsellerProductId debe ser un entero positivo' });
+    const afectados = await prisma.mapeoSku.findMany({ where: { id: { in: ids } }, select: { skuProveedor: true } });
     const { count } = await prisma.mapeoSku.updateMany({
       where: { id: { in: ids } },
       data:  { estado: 'confirmado', jumpsellerProductId, similitud: null },
     });
+    const skus = [...new Set(afectados.map(m => m.skuProveedor))];
+    await sincronizarProductosBulk(skus);
     res.json({ actualizados: count });
   } catch (err) {
     console.error('POST /mapeo/bulk/confirmar error:', err);
@@ -265,7 +274,9 @@ router.post('/:id/confirmar', async (req, res) => {
     const data = { estado: 'confirmado', jumpsellerProductId, similitud: null };
     if (nombreProducto && typeof nombreProducto === 'string')
       data.nombreProducto = nombreProducto.trim().slice(0, 500);
-    res.json(await prisma.mapeoSku.update({ where: { id: req.params.id }, data, include: INCLUDE_PROVEEDOR }));
+    const mapeo = await prisma.mapeoSku.update({ where: { id: req.params.id }, data, include: INCLUDE_PROVEEDOR });
+    await sincronizarProducto(mapeo.skuProveedor);
+    res.json(mapeo);
   } catch (err) {
     console.error('POST /mapeo/:id/confirmar error:', err);
     res.status(500).json({ error: 'Error interno del servidor' });
@@ -289,7 +300,7 @@ router.post('/:id/ignorar', async (req, res) => {
       });
     }
 
-    // Si queda exactamente 1 activo con el mismo SKU, auto-resolverlo y reasignar el producto
+    // Si queda exactamente 1 pendiente/ambiguo con el mismo SKU, auto-resolverlo
     let autoResuelto = null;
     const restantes = await prisma.mapeoSku.findMany({
       where: { skuProveedor: ignorado.skuProveedor, estado: { in: ['ambiguo', 'pendiente'] }, id: { not: req.params.id } },
@@ -298,17 +309,9 @@ router.post('/:id/ignorar', async (req, res) => {
       const unico = restantes[0];
       const nuevoEstado = unico.jumpsellerProductId ? 'confirmado' : 'pendiente';
       autoResuelto = await prisma.mapeoSku.update({ where: { id: unico.id }, data: { estado: nuevoEstado }, include: INCLUDE_PROVEEDOR });
-
-      // Reasignar el producto al proveedor correcto (el que quedó activo) y actualizar nombre
-      const datosProducto = { proveedorId: unico.proveedorId };
-      if (unico.nombreProducto) datosProducto.nombre = unico.nombreProducto;
-      await prisma.producto.updateMany({
-        where: { sku: ignorado.skuProveedor },
-        data:  datosProducto,
-      });
     }
 
-    await actualizarActivoProducto(ignorado.skuProveedor);
+    await sincronizarProducto(ignorado.skuProveedor);
     res.json({ ignorado, autoResuelto });
   } catch (err) {
     console.error('POST /mapeo/:id/ignorar error:', err);
@@ -320,7 +323,7 @@ router.post('/:id/ignorar', async (req, res) => {
 router.post('/:id/restaurar', async (req, res) => {
   try {
     const restaurado = await prisma.mapeoSku.update({ where: { id: req.params.id }, data: { estado: 'pendiente' } });
-    await actualizarActivoProducto(restaurado.skuProveedor);
+    await sincronizarProducto(restaurado.skuProveedor);
     res.json(restaurado);
   } catch (err) {
     console.error('POST /mapeo/:id/restaurar error:', err);

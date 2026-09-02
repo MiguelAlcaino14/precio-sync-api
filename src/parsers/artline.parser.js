@@ -39,7 +39,7 @@ function parsearArtline(buffer) {
       if (typeof costoRaw === 'string') {
         costoRaw = parseFloat(costoRaw.replace(/\$/g, '').replace(/\./g, '').replace(',', '.').trim());
       }
-      const costo = costoRaw && !isNaN(costoRaw) && costoRaw > 0 ? costoRaw : null;
+      const costo = costoRaw && !isNaN(costoRaw) && costoRaw > 0 ? Math.round(costoRaw) : null;
 
       const parseUnidades = v => { const n = parseInt(v); return n > 1 && n <= 10000 ? n : null; };
       const unidadesCaja = iInner >= 0 ? parseUnidades(f[iInner]) : null;

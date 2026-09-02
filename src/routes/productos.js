@@ -1,7 +1,7 @@
 const express = require('express');
 const prisma  = require('../db');
 const { calcularPrecioConReglas, sortReglas } = require('../services/markup.service');
-const { actualizarActivoProducto } = require('../services/producto.service');
+const { sincronizarProductosBulk } = require('../services/producto.service');
 
 const router = express.Router();
 
@@ -145,18 +145,38 @@ router.get('/', async (req, res) => {
   }
 });
 
-// POST /api/productos/recalcular-activos — resync campo activo desde mapeos reales
+// POST /api/productos/recalcular-activos — resync activo + nombre + proveedorId desde mapeos reales
 router.post('/recalcular-activos', async (req, res) => {
   try {
     await prisma.$executeRaw`ALTER TABLE "Producto" ADD COLUMN IF NOT EXISTS "activo" BOOLEAN NOT NULL DEFAULT true`;
     const result = await prisma.$executeRaw`
       UPDATE "Producto" p
-      SET "activo" = (
-        SELECT COUNT(*) > 0
-        FROM "MapeoSku" m
-        WHERE m."skuProveedor" = p.sku
-          AND m.estado != 'ignorado'
-      )
+      SET
+        "activo" = EXISTS (
+          SELECT 1 FROM "MapeoSku" m WHERE m."skuProveedor" = p.sku AND m.estado != 'ignorado'
+        ),
+        "proveedorId" = COALESCE(
+          (
+            SELECT m."proveedorId" FROM "MapeoSku" m
+            WHERE m."skuProveedor" = p.sku AND m.estado != 'ignorado'
+            ORDER BY
+              CASE m.estado WHEN 'confirmado' THEN 0 WHEN 'pendiente' THEN 2 ELSE 4 END +
+              CASE WHEN m."nombreProducto" IS NOT NULL THEN 0 ELSE 1 END
+            LIMIT 1
+          ),
+          p."proveedorId"
+        ),
+        "nombre" = COALESCE(
+          (
+            SELECT m."nombreProducto" FROM "MapeoSku" m
+            WHERE m."skuProveedor" = p.sku AND m.estado != 'ignorado'
+              AND m."nombreProducto" IS NOT NULL
+            ORDER BY
+              CASE m.estado WHEN 'confirmado' THEN 0 WHEN 'pendiente' THEN 2 ELSE 4 END
+            LIMIT 1
+          ),
+          p."nombre"
+        )
     `;
     res.json({ actualizados: result });
   } catch (err) {
